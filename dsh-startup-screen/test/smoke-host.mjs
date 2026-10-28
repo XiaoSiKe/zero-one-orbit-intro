@@ -154,6 +154,25 @@ for (const f of ['line-1', 'line-2', 'line-3', 'line-4', 'line-5']) {
   check('真声素材 ' + f + '.mp3 -> 200', rr.statusCode === 200 && rr.body.length > 5000, rr.statusCode + ' ' + rr.body.length)
 }
 
+r = await call('prefix /dsh-startup/asset', 'GET', undefined, '/dsh-startup/asset/rixin-logo.jpg')
+check('Logo 独立资源 -> 200 + image/jpeg', r.statusCode === 200 && r.headers['Content-Type'] === 'image/jpeg')
+r = await call('prefix /dsh-startup/asset', 'GET', undefined, '/dsh-startup/asset/other.jpg')
+check('不放宽任意图片文件访问 -> 404', r.statusCode === 404)
+
+for (const [url, status] of [
+  ['/dsh-startup/asset/%ZZ', 400],
+  ['/dsh-startup/asset/../asset/line-1.mp3', 404],
+  ['/dsh-startup/asset/sub%2Fline-1.mp3', 404],
+  ['/dsh-startup/asset/sub%5Cline-1.mp3', 404],
+]) {
+  try {
+    r = await call('prefix /dsh-startup/asset', 'GET', undefined, url)
+    check('素材 URL 边界 ' + url + ' -> ' + status, r.statusCode === status)
+  } catch (error) {
+    check('素材 URL 边界不抛异常 ' + url, false, error.message)
+  }
+}
+
 console.log('\n[4] 配置读写落盘')
 r = await call('exact /dsh-startup/config')
 let cfg = JSON.parse(r.body)
@@ -178,8 +197,14 @@ check('身份编号留空 + 英文名 → 自动派生 ADALOVELACE', JSON.parse(
 r = await call('exact /dsh-startup/config', 'POST', JSON.stringify({ patch: { speed: 0.01, theme: 'neon', accent: 'javascript:alert(1)' } }))
 cfg = JSON.parse(r.body)
 check('speed 低于下限被夹到 0.35', cfg.config.speed === 0.35, String(cfg.config.speed))
-check('非法 theme 回落到 light', cfg.config.theme === 'light', cfg.config.theme)
-check('非法颜色回落到默认橙', cfg.config.accent === '#ff7500', cfg.config.accent)
+check('非法 theme 回落到 dark', cfg.config.theme === 'dark', cfg.config.theme)
+check('非法颜色回落到默认灰白', cfg.config.accent === '#e5e5e5', cfg.config.accent)
+
+for (const color of ['#123', '#1234', '#123456', '#12345678', '#12345', '#1234567']) {
+  r = await call('exact /dsh-startup/config', 'POST', JSON.stringify({ patch: { accent: color } }))
+  const valid = [4, 5, 7, 9].includes(color.length)
+  check('CSS 颜色长度校验 ' + color, JSON.parse(r.body).config.accent === (valid ? color : '#e5e5e5'))
+}
 
 r = await call('exact /dsh-startup/config', 'POST', JSON.stringify({ action: 'reset' }))
 check('reset 恢复默认', JSON.parse(r.body).config.identity === 'JOYCE MOORE')
@@ -229,6 +254,45 @@ check('载荷里没有 </script>', !payload.includes('</script>'))
 check('转义后仍是合法 JSON 且值可还原', (() => {
   try { return JSON.parse(payload).identity === '</script><img src=x onerror=alert(1)>' } catch { return false }
 })())
+
+console.log('\n[8] 新桌面端 boot IPC：结构化注入表')
+{
+  const listeners = new Map()
+  const modernRoutes = []
+  const modernContext = {
+    webServer: {
+      register(route) { modernRoutes.push(route); return () => {} },
+      collectIndexInjections() {
+        const table = []
+        for (const callback of listeners.get('webserver/index-inject') || []) callback(table)
+        return table
+      },
+    },
+    on(event, callback) {
+      const entries = listeners.get(event) || []
+      entries.push(callback)
+      listeners.set(event, entries)
+      return () => { const i = entries.indexOf(callback); if (i >= 0) entries.splice(i, 1) }
+    },
+    effect(fn) { return fn },
+  }
+  mod.apply(modernContext)
+  const rows = modernContext.webServer.collectIndexInjections()
+  check('不提供 tapIndex 的桌面载体也注册全部路由', modernRoutes.length === 4)
+  check('通过官方 webserver/index-inject 事件注入', listeners.has('webserver/index-inject'))
+  check('首屏样式含锁滚动与完整动画样式', rows.some((r) => r.kind === 'style' && r.text.includes('dsu-lock') && r.text.includes('.dsu-reticle')))
+  check('启动配置用结构化 global 传递', rows.some((r) => r.kind === 'global' && r.name === '__DSH_STARTUP__' && r.value.enabled === true))
+  check('声明 index 引导标记，阻止客户端重复自举', rows.some((r) => r.kind === 'global' && r.name === '__DSH_STARTUP_BOOT__' && r.value === 'index'))
+  const rootAt = rows.findIndex((r) => r.kind === 'html' && r.html.includes('id="dsh-startup-root"'))
+  const bootstrapAt = rows.findIndex((r) => r.kind === 'script' && r.text.includes('__DSH_STARTUP_SKIP__'))
+  const runtimeAt = rows.findIndex((r) => r.kind === 'script-src' && r.src === '/dsh-startup/splash.js')
+  check('先创建覆盖层，再执行判定，再载入运行时', rootAt >= 0 && rootAt < bootstrapAt && bootstrapAt < runtimeAt)
+  const cfg = rows.find((r) => r.kind === 'global' && r.name === '__DSH_STARTUP__')
+  check('特殊身份文案仍只是配置数据', cfg.value.identity === '</script><img src=x onerror=alert(1)>')
+  const table = [...rows]
+  for (const callback of listeners.get('webserver/index-inject')) callback(table)
+  check('重复收集不会追加第二个首屏运行时', table.filter((r) => r.kind === 'script-src' && r.src === '/dsh-startup/splash.js').length === 1)
+}
 
 fs.rmSync(SMOKE_HOME, { recursive: true, force: true })
 console.log('\n============================')

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>机械音效离线试听</title>
+<style>body{background:#020202;color:#eee;font:16px/1.8 system-ui;margin:64px auto;padding:0 24px;max-width:740px}audio{width:100%;margin:24px 0}small{color:#aaa}pre{white-space:pre-wrap;font-size:12px}</style>
+<h1>机械音效试听</h1>
+<p>电机启动 → 齿合推进 → 确认锁扣 → 读取伺服 → 气动扫频 → 完成锁定</p>
+<audio id="preview" controls></audio>
+<small>直接使用当前启动动画的声音引擎离线渲染，不包含旁白；正式播放会在旁白出现时适当压低机器声。</small>
+<pre id="sound-results">正在渲染…</pre>
+<script type="module">
+const sampleRate = 48000, duration = 6.4;
+const offline = new OfflineAudioContext(1, Math.ceil(sampleRate * duration), sampleRate);
+let playhead = 0;
+const proxy = new Proxy(offline, { get(target, key) {
+  if (key === 'state') return 'running';
+  if (key === 'currentTime') return playhead;
+  if (key === 'resume' || key === 'close') return () => Promise.resolve();
+  const value = Reflect.get(target, key, target);
+  return typeof value === 'function' ? value.bind(target) : value;
+} });
+const source = await (await fetch('../lib/splash.js')).text();
+const factory = source.slice(source.indexOf('  var audio = (function () {'), source.indexOf('  var voice = (function () {'));
+const settings = { sound:true, soundVolume:0.5, voice:false, voiceVolume:0.9, voiceSource:'tts', sfx:'synth' };
+const engine = new Function('window','C','clamp01','fetch',factory+'\nreturn audio')(
+  {AudioContext:function(){return proxy}}, settings, (v,lo,hi)=>Math.max(lo,Math.min(hi,Number(v))), ()=>Promise.reject(new Error('试听不读取录音'))
+);
+for (const [at, cue] of [[0.05,'rise'],[1.5,'step'],[2.1,'confirm'],[2.9,'tickRun'],[4,'sweep'],[5.1,'chime']]) {
+  playhead = at; engine[cue]();
+}
+const rendered = await offline.startRendering();
+const samples = rendered.getChannelData(0);
+let peak = 0, squared = 0, clipped = 0, nonfinite = 0;
+for (const value of samples) { if(!Number.isFinite(value))nonfinite++;peak=Math.max(peak,Math.abs(value));squared+=value*value;if(Math.abs(value)>=0.999)clipped++; }
+const wav = new ArrayBuffer(44 + samples.length * 2), view = new DataView(wav);
+const text = (at,value) => { for(let i=0;i<value.length;i++)view.setUint8(at+i,value.charCodeAt(i)); };
+text(0,'RIFF');view.setUint32(4,36+samples.length*2,true);text(8,'WAVE');text(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,sampleRate,true);view.setUint32(28,sampleRate*2,true);view.setUint16(32,2,true);view.setUint16(34,16,true);text(36,'data');view.setUint32(40,samples.length*2,true);
+samples.forEach((value,index)=>view.setInt16(44+index*2,Math.round(Math.max(-1,Math.min(1,value))*32767),true));
+const bytes = new Uint8Array(wav);let binary='';
+for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
+const data=document.createElement('script');data.type='application/octet-stream';data.id='sound-wave-data';data.textContent=btoa(binary);document.body.appendChild(data);
+const url=URL.createObjectURL(new Blob([wav],{type:'audio/wav'}));document.getElementById('preview').src=url;
+document.getElementById('sound-results').textContent=JSON.stringify({duration,sampleRate,peak,rms:Math.sqrt(squared/samples.length),clipped,nonfinite},null,2);
+window.addEventListener('pagehide',()=>URL.revokeObjectURL(url),{once:true});
+</script>
+</html>

@@ -1,0 +1,73 @@
+{
+  "name": "dsh-startup-screen",
+  "version": "1.1.2-rixin.3",
+  "description": "零一·环轨启序：零一 AI 日新社专为社员制作的 DSH 开场动效，黑白机械环轨、交互确认与本地机械音效。",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "deepseek-harness-desktop",
+    "startup",
+    "splash",
+    "boot-animation"
+  ],
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "test",
+    "preview/index.html",
+    "open-preview.sh",
+    "打开预览.cmd",
+    "安装.cmd",
+    "cordis.patch.yml",
+    "README.md",
+    "INSTALL.md",
+    "DESKTOP.md",
+    "AUDIO-FIELDS.md",
+    "LICENSE",
+    "preview/rixin.html",
+    "preview/server.mjs",
+    "RIXIN.md",
+    "rixin-brand.css",
+    "UPSTREAM.md",
+    "scripts"
+  ],
+  "scripts": {
+    "test": "node test/smoke-host.mjs && node test/smoke-splash.mjs && node test/smoke-client.mjs && node test/smoke-desktop-boot.mjs && node test/smoke-audio.mjs && node test/smoke-timing.mjs && node test/smoke-preview.mjs",
+    "preview": "node preview/server.mjs",
+    "start": "node preview/server.mjs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XiaoSiKe/zero-one-orbit-intro.git"
+  },
+  "bugs": {
+    "url": "https://github.com/XiaoSiKe/zero-one-orbit-intro/issues"
+  },
+  "homepage": "https://github.com/XiaoSiKe/zero-one-orbit-intro#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ],
+      "platform": "web"
+    }
+  },
+  "author": "沈宏宏",
+  "contributors": [
+    "零一 AI 日新社"
+  ]
+}

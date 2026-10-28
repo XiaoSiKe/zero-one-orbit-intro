@@ -38,7 +38,7 @@ const PLUGIN_VERSION = (() => {
 const DEFAULTS = {
   enabled: true,
   mode: 'session',            // always | session | daily
-  theme: 'light',             // light | dark
+  theme: 'dark',             // light | dark
   speed: 1,
   requireInteraction: true,
   allowSkip: true,
@@ -57,18 +57,18 @@ const DEFAULTS = {
   identity: 'JOYCE MOORE',    // ← 设置页里可改的「身份名称」
   identityId: '0087',
   accessLevel: '3',
-  brand1: 'DEEPSEEK',
-  brand2: 'SYNTHESIZE INTELLIGENCE',
+  brand1: '零一 AI 日新社',
+  brand2: '01 AI CLUB',
   brand3a: 'HARNESS',
   brand3b: 'OS',
-  orgZh: '深度求索',
-  orgEn: 'DEEPSEEK',
-  orgSub: 'DEEPSEEK HARNESS',
-  welcomeBox: 'DEEPSEEK HARNESS',
-  footer: 'POWERED BY DEEPSEEK',
-  accent: '#ff7500',
-  glitchA: '#ff3b30',
-  glitchB: '#2971b8'
+  orgZh: '零一 AI 日新社',
+  orgEn: '01 AI CLUB',
+  orgSub: '从零到一，让技术进步成为每个人的机会！',
+  welcomeBox: '零一 AI 日新社',
+  footer: '零一 AI 日新社',
+  accent: '#e5e5e5',
+  glitchA: '#ffffff',
+  glitchB: '#b0b0b0'
 }
 
 const TEXT_KEYS = [
@@ -111,7 +111,7 @@ function normalize(input) {
       out[key] = Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : DEFAULTS[key]
     } else if (COLOR_KEYS.includes(key)) {
       const s = String(value).trim()
-      out[key] = /^#[0-9a-fA-F]{3,8}$/.test(s) ? s : DEFAULTS[key]
+      out[key] = /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(s) ? s : DEFAULTS[key]
     } else if (TEXT_KEYS.includes(key)) {
       out[key] = String(value).slice(0, 64)
     } else {
@@ -206,7 +206,8 @@ function resolveWebServer(ctx) {
 }
 
 function hasRoutes(server) {
-  return !!server && typeof server.register === 'function' && typeof server.tapIndex === 'function'
+  return !!server && typeof server.register === 'function' &&
+    (typeof server.tapIndex === 'function' || typeof server.collectIndexInjections === 'function')
 }
 
 function apply(ctx) {
@@ -307,8 +308,13 @@ function apply(ctx) {
     kind: 'prefix',
     path: ROUTE_BASE + '/asset',
     handler: (req, res) => {
-      const name = path.basename(decodeURIComponent((req.url || '').split('?')[0]))
-      if (!/^[a-z0-9._-]+\.mp3$/i.test(name) || name.includes('..')) {
+      let pathname
+      try { pathname = decodeURIComponent((req.url || '').split('?')[0]) }
+      catch { res.writeHead(400); res.end(); return }
+      const prefix = ROUTE_BASE + '/asset/'
+      if (!pathname.startsWith(prefix)) { res.writeHead(404); res.end(); return }
+      const name = pathname.slice(prefix.length)
+      if ((!/^[a-z0-9._-]+\.mp3$/i.test(name) && name !== 'rixin-logo.jpg') || name.includes('..')) {
         res.writeHead(404); res.end(); return
       }
       const file = path.join(PACKAGE_ROOT, 'lib', 'assets', name)
@@ -317,7 +323,7 @@ function apply(ctx) {
         res.writeHead(404); res.end(); return
       }
       res.writeHead(200, {
-        'Content-Type': 'audio/mpeg',
+        'Content-Type': name === 'rixin-logo.jpg' ? 'image/jpeg' : 'audio/mpeg',
         'Cache-Control': 'public, max-age=86400',
         'Content-Length': String(bytes.length)
       })
@@ -362,25 +368,44 @@ function apply(ctx) {
     }
   }))
 
-  disposers.push(webServer.tapIndex((html) => {
-    if (!html || html.includes(ROUTE_BASE + '/splash.js')) return html
-    const cfg = readConfig()
-    const head =
-      '<link rel="stylesheet" href="' + ROUTE_BASE + '/splash.css">' +
-      '<style id="dsh-startup-critical">' + CRITICAL_CSS + '</style>'
-    const body =
-      '<div id="dsh-startup-root" class="dsu-root dsu-boot"></div>' +
-      '<script>window.__DSH_STARTUP_BOOT__="index";window.__DSH_STARTUP_VERSION__=' + safeJson(PLUGIN_VERSION) + ';window.__DSH_STARTUP__=' + safeJson(cfg) + ';' + BOOTSTRAP_JS + '</script>' +
-      '<script defer src="' + ROUTE_BASE + '/splash.js"></script>'
+  /* 新桌面载体通过 boot IPC 消费结构化注入表，不调用旧的 HTML tap。
+     只选择一条注入路径，避免同页创建两个首屏覆盖层。 */
+  if (typeof webServer.collectIndexInjections === 'function' && typeof ctx.on === 'function') {
+    const off = ctx.on('webserver/index-inject', (table) => {
+      if (!Array.isArray(table)) return
+      if (table.some((row) => row.kind === 'script-src' && row.src === ROUTE_BASE + '/splash.js')) return
+      table.push(
+        { kind: 'style', text: CRITICAL_CSS + '\n' + readSplashCss() },
+        { kind: 'global', name: '__DSH_STARTUP_BOOT__', value: 'index' },
+        { kind: 'global', name: '__DSH_STARTUP_VERSION__', value: PLUGIN_VERSION },
+        { kind: 'global', name: '__DSH_STARTUP__', value: readConfig() },
+        { kind: 'html', placement: 'body', html: '<div id="dsh-startup-root" class="dsu-root dsu-boot"></div>' },
+        { kind: 'script', placement: 'body', text: BOOTSTRAP_JS },
+        { kind: 'script-src', placement: 'body', src: ROUTE_BASE + '/splash.js' }
+      )
+    })
+    if (typeof off === 'function') disposers.push(off)
+  } else if (typeof webServer.tapIndex === 'function') {
+    disposers.push(webServer.tapIndex((html) => {
+      if (!html || html.includes(ROUTE_BASE + '/splash.js')) return html
+      const cfg = readConfig()
+      const head =
+        '<link rel="stylesheet" href="' + ROUTE_BASE + '/splash.css">' +
+        '<style id="dsh-startup-critical">' + CRITICAL_CSS + '</style>'
+      const body =
+        '<div id="dsh-startup-root" class="dsu-root dsu-boot"></div>' +
+        '<script>window.__DSH_STARTUP_BOOT__="index";window.__DSH_STARTUP_VERSION__=' + safeJson(PLUGIN_VERSION) + ';window.__DSH_STARTUP__=' + safeJson(cfg) + ';' + BOOTSTRAP_JS + '</script>' +
+        '<script defer src="' + ROUTE_BASE + '/splash.js"></script>'
 
-    let out = html
-    if (out.includes('</head>')) out = out.replace('</head>', head + '</head>')
-    else out = head + out
-    if (out.includes('<body>')) out = out.replace('<body>', '<body>' + body)
-    else if (out.includes('</body>')) out = out.replace('</body>', body + '</body>')
-    else out = out + body
-    return out
-  }))
+      let out = html
+      if (out.includes('</head>')) out = out.replace('</head>', head + '</head>')
+      else out = head + out
+      if (out.includes('<body>')) out = out.replace('<body>', '<body>' + body)
+      else if (out.includes('</body>')) out = out.replace('</body>', body + '</body>')
+      else out = out + body
+      return out
+    }))
+  }
 
   ctx.effect(() => () => {
     for (const dispose of disposers) {

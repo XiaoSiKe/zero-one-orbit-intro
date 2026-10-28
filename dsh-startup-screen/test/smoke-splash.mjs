@@ -145,6 +145,7 @@ function run(withSpeech, cfgOverride, env) {
   const body = makeEl('body')
   const htmlEl = makeEl('html')
 
+  const documentListeners = new Map()
   const documentStub = {
     readyState: 'complete',
     head, body,
@@ -154,8 +155,8 @@ function run(withSpeech, cfgOverride, env) {
     createElementNS: (_ns, t) => makeEl(t),
     querySelector: (sel) => (E.probe && /span/.test(String(sel)) ? E.probe : null),
     querySelectorAll: (sel) => (E.probe && /span/.test(String(sel)) ? [E.probe] : []),
-    addEventListener() {},
-    removeEventListener() {},
+    addEventListener(type, handler) { const set = documentListeners.get(type) || new Set(); set.add(handler); documentListeners.set(type, set) },
+    removeEventListener(type, handler) { documentListeners.get(type)?.delete(handler) },
   }
 
   const timers = []
@@ -214,6 +215,7 @@ function run(withSpeech, cfgOverride, env) {
       this.text = t; this.rate = 1; this.pitch = 1; this.volume = 1
     }
   }
+  if (E.skip) windowStub.__DSH_STARTUP_SKIP__ = true
   windowStub.window = windowStub
 
   const sandbox = {
@@ -252,7 +254,7 @@ function run(withSpeech, cfgOverride, env) {
   } catch (e) {
     thrown = e
   }
-  return { windowStub, root, head, timers, thrown, markup: MARKUP, sandbox, spoken }
+  return { windowStub, root, head, timers, thrown, markup: MARKUP, sandbox, spoken, documentListeners }
 }
 
 /* ── 开跑 ───────────────────────────────────────────────────────────────── */
@@ -412,6 +414,27 @@ console.log('\n[10] 桌面端标题栏同步：仅 Windows 桌面端生效、可
   chrome = rr.windowStub.__DSH_STARTUP_CHROME__
   check('macOS 判定为非 Windows 桌面端', chrome.isDesktopWin() === false)
   check('macOS 不动探针', macProbe.style.getPropertyValue('background-color') === 'var(--dsw-specific-sidebar-fill)')
+}
+
+console.log('\n[11] 停止与重播释放旧播放资源')
+{
+  let disconnected = 0
+  class Observer { observe() {} disconnect() { disconnected++ } }
+  const instance = run(true, {}, { MutationObserver: Observer })
+  const api = instance.windowStub.__DSH_STARTUP_API__
+  const before = [...instance.documentListeners.values()].reduce((n, set) => n + set.size, 0)
+  api.speak('Ready.')
+  const speech = instance.windowStub.speechSynthesis
+  speech.cancelCalls = 0
+  api.replay()
+  check('重播先停止旧旁白', speech.cancelCalls === 1)
+  check('旧的全局输入监听器已释放', before > 0 && [...instance.documentListeners.values()].every((set) => set.size === 0))
+  check('旧的 DOM 观察器已断开', disconnected === 1)
+  check('重播仍载入当前运行时脚本', instance.head.children.some((node) => node.tagName === 'SCRIPT' || node.tag === 'script' || node.src?.includes('splash.js')))
+  const disabled = run(true, {}, { skip: true })
+  let failed = null
+  try { disabled.windowStub.__DSH_STARTUP_API__.replay() } catch (error) { failed = error }
+  check('未播放过的禁用页面也能正常请求重播', failed === null, failed?.message)
 }
 
 console.log('\n============================')

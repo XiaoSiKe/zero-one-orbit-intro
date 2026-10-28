@@ -1,0 +1,498 @@
+/* 零一品牌覆盖层：配色、品牌与机械仪表细节，保留上游主时间线。
+   Logo 经同源本地资源路由加载，避免大段 data URI 阻塞样式解析。 */
+#dsh-startup-root {
+  /* 动效层不滚动，避免身份卡展开时滚动锚定把整屏画面推离视口。 */
+  overflow: clip;
+  overflow-anchor: none;
+  --rixin-logo: url("/dsh-startup/asset/rixin-logo.jpg");
+  --rixin-reticle-size: min(54vw, 70vh, 960px);
+  --rx-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --rx-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+#dsh-startup-root.dsu-dark { --dsu-bg: #020202; --dsu-bg-2: #040404; }
+#dsh-startup-root.dsu-dark .dsu-plate { background: #020202; }
+#dsh-startup-root.dsu-dark .dsu-wm { background: rgba(255,255,255,.004); }
+#dsh-startup-root.dsu-dark .dsu-vignette {
+  background: radial-gradient(122% 104% at 50% 42%, rgba(0,0,0,0) 45%, rgba(0,0,0,.55) 100%);
+}
+#dsh-startup-root.dsu-dark .dsu-grain { opacity: .018; }
+#dsh-startup-root .dsu-brand { padding-left: 108px; mix-blend-mode: screen; }
+#dsh-startup-root .dsu-brand::before,
+#dsh-startup-root .dsu-black-inner::before,
+#dsh-startup-root .dsu-w3::before,
+#dsh-startup-root .dsu-reticle::after {
+  content: "";
+  display: block;
+  flex: 0 0 auto;
+  width: 122px;
+  height: 122px;
+  background: #fff;
+  mask-image: var(--rixin-logo);
+  mask-mode: luminance;
+  mask-size: 230% auto;
+  mask-position: 50% 54%;
+  mask-repeat: no-repeat;
+}
+#dsh-startup-root .dsu-brand::before {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 84px;
+  height: 88px;
+  opacity: 0;
+  transform: translateX(-22px);
+  transition: opacity 560ms cubic-bezier(0.16,0.84,0.24,1), transform 560ms cubic-bezier(0.16,0.84,0.24,1);
+}
+#dsh-startup-root .dsu-brand.dsu-in::before { opacity: 1; transform: none; }
+#dsh-startup-root .dsu-brand-1 { font-family: var(--dsu-zh); font-size: 24px; line-height: 1.2; }
+#dsh-startup-root .dsu-brand-2 { font-size: 12px; letter-spacing: .12em; margin-top: 7px; }
+#dsh-startup-root .dsu-brand-3 { font-size: 20px; margin-top: 5px; }
+#dsh-startup-root .dsu-black-inner::before {
+  width: clamp(150px, 20vw, 210px);
+  height: clamp(150px, 20vw, 210px);
+  margin-bottom: 28px;
+}
+/* 开场徽记的机械定位角，独立于文字排版。 */
+#dsh-startup-root .dsu-black-inner { position: relative; }
+#dsh-startup-root .dsu-black-inner::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -20px;
+  width: calc(clamp(150px, 20vw, 210px) + 40px);
+  height: calc(clamp(150px, 20vw, 210px) + 40px);
+  transform: translateX(-50%);
+  opacity: .6;
+  pointer-events: none;
+  background:
+    linear-gradient(#aaa, #aaa) left top / 17px 1px,
+    linear-gradient(#aaa, #aaa) left top / 1px 17px,
+    linear-gradient(#aaa, #aaa) right top / 17px 1px,
+    linear-gradient(#aaa, #aaa) right top / 1px 17px,
+    linear-gradient(#aaa, #aaa) left bottom / 17px 1px,
+    linear-gradient(#aaa, #aaa) left bottom / 1px 17px,
+    linear-gradient(#aaa, #aaa) right bottom / 17px 1px,
+    linear-gradient(#aaa, #aaa) right bottom / 1px 17px;
+  background-repeat: no-repeat;
+}
+#dsh-startup-root .dsu-black-inner.dsu-in::after { animation: rx-frame-lock calc(700ms / var(--dsu-speed)) var(--rx-ease-out) both; }
+@keyframes rx-frame-lock {
+  from { opacity: 0; transform: translateX(-50%) scale(1.18); }
+  to { opacity: .6; transform: translateX(-50%) scale(1); }
+}
+/* 开场、终幕换成社团原图；第三步 svgWhale 与描线动作原样保留。 */
+#dsh-startup-root .dsu-black .dsu-whale,
+#dsh-startup-root .dsu-w3 svg { display: none; }
+#dsh-startup-root .dsu-w3::before { width: 92px; height: 96px; }
+#dsh-startup-root .dsu-black-zh { font-size: clamp(28px, 4.3vw, 48px); font-weight: 900; -webkit-text-stroke: .35px currentColor; letter-spacing: .12em; text-indent: .12em; }
+#dsh-startup-root .dsu-black-en { font-size: clamp(26px, 3.5vw, 38px); font-weight: 900; -webkit-text-stroke: .25px currentColor; }
+#dsh-startup-root .dsu-black-sub,
+#dsh-startup-root .dsu-w3 span {
+  font-family: var(--dsu-zh);
+  font-size: 13px;
+  letter-spacing: .12em;
+  text-indent: .12em;
+  line-height: 1.8;
+  text-align: center;
+  max-width: 86vw;
+  color: #b8b8b8;
+}
+#dsh-startup-root .dsu-black-sub {
+  margin-top: 30px;
+  font-size: clamp(17px, 2.4vw, 24px);
+  letter-spacing: .06em;
+  text-indent: .06em;
+  line-height: 1.7;
+  color: #d6d6d6;
+  font-weight: 800;
+  -webkit-text-stroke: .15px currentColor;
+}
+
+/* 原样式的全局 margin/padding 重置优先级高于组件类名，
+   在品牌层显式补足按钮尺寸与各层间距。 */
+#dsh-startup-root .dsu-status,
+#dsh-startup-root .dsu-status.dsu-zhline { font-weight: 650; }
+#dsh-startup-root .dsu-sub-en { margin-top: 14px; font-weight: 500; }
+#dsh-startup-root .dsu-rule { margin-top: 18px; }
+#dsh-startup-root .dsu-logo { margin-top: 26px; }
+#dsh-startup-root .dsu-logolabel { margin-top: 10px; }
+#dsh-startup-root .dsu-action { gap: 16px; }
+#dsh-startup-root .dsu-btn {
+  min-width: 320px;
+  min-height: 64px;
+  max-width: 90vw;
+  justify-content: center;
+  gap: 20px;
+  padding: 18px 30px;
+  font-size: 17px;
+  border: 0;
+  overflow: visible;
+}
+#dsh-startup-root .dsu-btn::before {
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  transform: none;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+#dsh-startup-root .dsu-btn.dsu-pulse { animation: none; box-shadow: none; }
+#dsh-startup-root .dsu-btn > .rx-button-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  color: inherit;
+  pointer-events: none;
+  overflow: visible;
+}
+#dsh-startup-root .rx-button-outline { fill: none; stroke: currentColor; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+#dsh-startup-root .rx-button-recess { fill: none; stroke: currentColor; stroke-width: .7; opacity: .28; vector-effect: non-scaling-stroke; }
+#dsh-startup-root .rx-button-pawl { fill: currentColor; opacity: .7; transition: transform 160ms var(--rx-ease-out); }
+@media (hover: hover) and (pointer: fine) {
+  #dsh-startup-root .dsu-btn:hover::before { opacity: 1; }
+  #dsh-startup-root .dsu-btn:hover .rx-pawl-left { transform: translateX(2px); }
+  #dsh-startup-root .dsu-btn:hover .rx-pawl-right { transform: translateX(-2px); }
+}
+@media (hover: none) {
+  #dsh-startup-root .dsu-btn:hover { color: var(--dsu-ink); }
+  #dsh-startup-root .dsu-btn:hover .dsu-btn-en { color: inherit; opacity: .62; }
+}
+#dsh-startup-root .dsu-btn:active .rx-pawl-left { transform: translateX(4px); transition-duration: 100ms; }
+#dsh-startup-root .dsu-btn:active .rx-pawl-right { transform: translateX(-4px); transition-duration: 100ms; }
+#dsh-startup-root.rx-engage .rx-button-frame { animation: rx-button-impact calc(650ms / var(--dsu-speed)) var(--rx-ease-out) both; }
+@keyframes rx-button-impact {
+  0% { transform: scale(1); }
+  12% { transform: scale(.97, .92); }
+  28% { transform: scale(1.005, 1.025); }
+  48%, 100% { transform: scale(1); }
+}
+#dsh-startup-root .dsu-btn-zh { font-size: 17px; font-weight: 700; }
+#dsh-startup-root .dsu-btn-en { font-size: 12px; font-weight: 600; letter-spacing: .16em; }
+#dsh-startup-root .dsu-btn:focus-visible { outline: 2px solid #fff; outline-offset: 6px; }
+#dsh-startup-root .dsu-hint { font-size: 12px; }
+#dsh-startup-root .dsu-hint kbd { padding: 2px 6px; margin: 0 3px; }
+#dsh-startup-root .dsu-card { min-width: 340px; padding: 4px 0; }
+#dsh-startup-root .dsu-card-row { padding: 8px 4px; }
+#dsh-startup-root .dsu-card-row b { font-size: 17px; }
+#dsh-startup-root .dsu-skip { min-height: 44px; padding: 12px 16px; font-size: 12px; font-weight: 600; }
+#dsh-startup-root .dsu-sub-zh { font-weight: 500; }
+
+/* 扫描和进度仅变换合成层，不逐帧改 top/left/width。 */
+#dsh-startup-root .dsu-sweep { left: 0; transform: translateX(-119.0476%); will-change: transform; }
+#dsh-startup-root .dsu-sweep.dsu-go { animation-name: rx-sweep-gpu; }
+@keyframes rx-sweep-gpu {
+  from { transform: translateX(-119.0476%); }
+  to { transform: translateX(280.9524%); }
+}
+#dsh-startup-root .dsu-scanline { top: 0; transform: translateY(calc(-14vh + 7.28px)); will-change: transform, opacity; }
+#dsh-startup-root .dsu-scanline.dsu-go { animation-name: rx-scan-gpu; }
+@keyframes rx-scan-gpu {
+  0% { transform: translateY(calc(-14vh + 7.28px)); opacity: 0; }
+  10%, 86% { opacity: 1; }
+  100% { transform: translateY(calc(102vh - 53.04px)); opacity: 0; }
+}
+#dsh-startup-root .dsu-rule { width: min(560px, 42vw); transform: scaleX(0); transition-property: transform; }
+#dsh-startup-root .dsu-rule.dsu-in { transform: scaleX(1); }
+#dsh-startup-root .dsu-foot i { width: 26px; transform: scaleX(0); transform-origin: right; transition-property: transform; }
+#dsh-startup-root .dsu-foot.dsu-in i { transform: scaleX(1); }
+#dsh-startup-root .dsu-progress i { width: 100%; transform: scaleX(0); transform-origin: left; transition-property: transform; }
+#dsh-startup-root .dsu-slat,
+#dsh-startup-root .dsu-slat.dsu-on { width: 20px; transform-origin: left; transition-property: transform, background-color, opacity; }
+#dsh-startup-root .dsu-voice i { height: 100%; transform: scaleY(.2); transform-origin: bottom; }
+#dsh-startup-root .dsu-voice.dsu-on i { animation-name: rx-voice-meter; }
+#dsh-startup-root .dsu-hex { white-space: pre; }
+@keyframes rx-voice-meter {
+  0%, 100% { transform: scaleY(.2); }
+  50% { transform: scaleY(1); }
+}
+
+/* 核验幕：徽记位于环心，状态文字在其下方独立成组。 */
+#dsh-startup-root .dsu-reticle {
+  top: 40%;
+  width: var(--rixin-reticle-size);
+  height: var(--rixin-reticle-size);
+  transition: opacity calc(200ms / var(--dsu-speed)) ease;
+}
+#dsh-startup-root .dsu-reticle::after {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 19%;
+  height: 20%;
+  transform: translate(-50%, -50%);
+}
+#dsh-startup-root .rx-calibration { fill: none; stroke: #c8c8c8; stroke-width: .8; opacity: .46; }
+#dsh-startup-root .rx-calibration .rx-major { stroke-width: 1.05; opacity: 1; }
+#dsh-startup-root .dsu-reticle .dsu-ret-rot-a,
+#dsh-startup-root .dsu-reticle .dsu-ret-rot-b { animation: none; }
+#dsh-startup-root .dsu-reticle.dsu-in .dsu-ret-rot-a {
+  animation: rx-rotor-outer calc(1350ms / var(--dsu-speed)) var(--rx-ease-out) both;
+}
+#dsh-startup-root .dsu-reticle.dsu-in .dsu-ret-rot-b {
+  animation: rx-rotor-inner calc(1280ms / var(--dsu-speed)) var(--rx-ease-out) both;
+}
+@keyframes rx-rotor-outer {
+  0% { transform: rotate(-230deg) scale(.97); }
+  82% { transform: rotate(2deg) scale(1); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+@keyframes rx-rotor-inner {
+  0% { transform: rotate(155deg) scale(.97); }
+  82% { transform: rotate(-37deg) scale(1); }
+  100% { transform: rotate(-35deg) scale(1); }
+}
+#dsh-startup-root .rx-dock-body { fill: #c9c9c9; stroke: #f0f0f0; stroke-width: .5; }
+#dsh-startup-root .rx-dock-slot { fill: #111; }
+#dsh-startup-root .dsu-reticle.dsu-in .rx-dock-slide {
+  animation: rx-dock-seat calc(450ms / var(--dsu-speed)) var(--rx-ease-out) calc(780ms / var(--dsu-speed)) both;
+}
+#dsh-startup-root .rx-dock-mount:nth-child(even) .rx-dock-slide {
+  animation-delay: calc(850ms / var(--dsu-speed));
+}
+@keyframes rx-dock-seat {
+  from { opacity: 0; transform: translateY(-14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+#dsh-startup-root .rx-lock-corners {
+  fill: none;
+  stroke: #e8e8e8;
+  stroke-width: .9;
+  opacity: .8;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+#dsh-startup-root .dsu-reticle.dsu-in .rx-lock-corners {
+  animation: rx-lock calc(350ms / var(--dsu-speed)) var(--rx-ease-out) calc(1070ms / var(--dsu-speed)) both;
+}
+#dsh-startup-root .rx-sector-scan { opacity: 0; transform-origin: 50% 50%; transform-box: view-box; }
+#dsh-startup-root .rx-sector-fill { fill: #fff; fill-opacity: .14; }
+#dsh-startup-root .rx-sector-edge { fill: none; stroke: #eee; stroke-width: 1.2; stroke-opacity: .85; }
+#dsh-startup-root .dsu-reticle.dsu-in .rx-sector-scan { animation: rx-sector-scan calc(1150ms / var(--dsu-speed)) var(--rx-ease-in-out) both; }
+@keyframes rx-sector-scan {
+  0% { opacity: 0; transform: rotate(-36deg); }
+  8% { opacity: .9; }
+  88% { opacity: .9; }
+  100% { opacity: 0; transform: rotate(324deg); }
+}
+@keyframes rx-lock {
+  from { opacity: 0; transform: scale(1.12); }
+  to { opacity: .8; transform: scale(1); }
+}
+#dsh-startup-root:has(.dsu-reticle.dsu-in) .dsu-center {
+  top: calc(40% + var(--rixin-reticle-size) * .5);
+}
+#dsh-startup-root:has(.dsu-reticle.dsu-in) .dsu-logo { margin-top: 0; }
+
+/* 欢迎幕：每一层有独立留白，社名块、徽记和标语不再贴合。 */
+#dsh-startup-root .dsu-welcome {
+  top: 47%;
+  transition-duration: calc(420ms / var(--dsu-speed));
+}
+/* 逐字与终幕切片和时间线共用一次速度换算，避免快放吞掉阅读时间。 */
+#dsh-startup-root .dsu-status .dsu-ch { transition-duration: calc(340ms / var(--dsu-speed)); }
+#dsh-startup-root .dsu-sub-en .dsu-ch { transition-duration: calc(300ms / var(--dsu-speed)); }
+#dsh-startup-root .dsu-glitch.dsu-on::before,
+#dsh-startup-root .dsu-glitch.dsu-on::after { animation-duration: calc(430ms / var(--dsu-speed)); }
+@media (prefers-reduced-motion: reduce) {
+  #dsh-startup-root .dsu-glitch.dsu-on::before,
+  #dsh-startup-root .dsu-glitch.dsu-on::after { animation: none; }
+}
+#dsh-startup-root .dsu-w1 {
+  font-size: clamp(23px, 2.2vw, 32px);
+  line-height: 1.25;
+  letter-spacing: .24em;
+  text-indent: .24em;
+}
+#dsh-startup-root .dsu-w2 {
+  margin-top: 20px;
+  padding: 12px 26px;
+  font-family: var(--dsu-zh);
+  font-size: clamp(25px, 2.6vw, 36px);
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: .08em;
+  text-indent: .08em;
+}
+#dsh-startup-root .dsu-w3 { margin-top: 36px; gap: 28px; }
+#dsh-startup-root .dsu-w3::before { width: 126px; height: 134px; }
+#dsh-startup-root .dsu-w3 span {
+  font-size: clamp(16px, 1.5vw, 20px);
+  font-weight: 650;
+  line-height: 1.8;
+  letter-spacing: .06em;
+  text-indent: .06em;
+  text-wrap: balance;
+}
+#dsh-startup-root .dsu-w4 {
+  margin-top: 24px;
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: .16em;
+  text-indent: .16em;
+  color: #aaa;
+}
+
+/* 终幕平稳收束：不再从角落扩散光晕、横扫高光或缩放整屏。 */
+#dsh-startup-root .dsu-bloom,
+#dsh-startup-root .dsu-streak,
+#dsh-startup-root .dsu-flash { display: none; }
+#dsh-startup-root.dsu-handoff {
+  transform: none;
+  filter: none;
+  opacity: 0;
+  transition: opacity calc(320ms / var(--dsu-speed)) var(--rx-ease-out);
+}
+
+/* 侧边继电器仪表只显示真实启动阶段，不增加独立计时器。 */
+#dsh-startup-root .rx-instrument {
+  position: absolute;
+  right: 46px;
+  bottom: 180px;
+  width: 156px;
+  z-index: 20;
+  opacity: 0;
+  transform: translateX(12px);
+  pointer-events: none;
+  font-family: var(--dsu-mono);
+  transition: opacity 420ms ease, transform 420ms var(--rx-ease-out);
+}
+#dsh-startup-root:has(.dsu-brand.dsu-in) .rx-instrument { opacity: .85; transform: none; }
+#dsh-startup-root .rx-serial {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #3a3a3a;
+  font-size: 9px;
+  letter-spacing: .14em;
+  color: #929292;
+}
+#dsh-startup-root .rx-serial b { width: 5px; height: 5px; border: 1px solid #aaa; }
+#dsh-startup-root .rx-phase { margin-top: 13px; font-size: 11px; letter-spacing: .14em; color: #c3c3c3; }
+#dsh-startup-root .rx-relays { display: flex; gap: 6px; margin-top: 14px; }
+#dsh-startup-root .rx-relays i {
+  flex: 1;
+  height: 4px;
+  background: #343434;
+  transition: background-color 160ms ease, transform 160ms var(--rx-ease-out);
+}
+#dsh-startup-root .rx-relays i.rx-passed { background: #767676; }
+#dsh-startup-root .rx-relays i.rx-current { background: #e0e0e0; transform: scaleY(1.5); }
+#dsh-startup-root .rx-flow { display: flex; justify-content: space-between; margin-top: 12px; font-size: 8px; color: #929292; letter-spacing: .08em; }
+#dsh-startup-root .rx-instrument.rx-confirmed .rx-phase { color: #eee; }
+#dsh-startup-root .rx-instrument.rx-confirmed .rx-serial b { background: #ddd; border-color: #ddd; }
+
+/* 双侧步进导轨，滑座的位置直接对应 BOOT 与六个启动阶段。 */
+#dsh-startup-root .rx-guide-rails {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 500ms ease;
+}
+#dsh-startup-root:has(.dsu-brand.dsu-in) .rx-guide-rails { opacity: .75; }
+#dsh-startup-root .rx-guide-rails svg {
+  position: absolute;
+  left: 16px;
+  top: 30%;
+  width: 26px;
+  height: clamp(180px, 32vh, 260px);
+  overflow: visible;
+}
+#dsh-startup-root .rx-guide-rails .rx-rail-right { left: auto; right: 16px; transform: scaleX(-1); }
+#dsh-startup-root .rx-rail-spine { fill: none; stroke: #aaa; stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+#dsh-startup-root .rx-rail-center { fill: none; stroke: #555; stroke-width: .6; vector-effect: non-scaling-stroke; }
+#dsh-startup-root .rx-rail-stop { fill: none; stroke: #bdbdbd; stroke-width: 2.2; vector-effect: non-scaling-stroke; }
+#dsh-startup-root .rx-rail-notch { stroke: #999; stroke-width: .8; opacity: .4; vector-effect: non-scaling-stroke; }
+#dsh-startup-root .rx-rail-notch.rx-rail-major { stroke: #ccc; stroke-width: 1.2; opacity: .8; }
+#dsh-startup-root .rx-rail-carriage { transition: transform calc(380ms / var(--dsu-speed)) var(--rx-ease-out); }
+#dsh-startup-root .rx-rail-shoe { fill: #e7e7e7; }
+#dsh-startup-root .rx-rail-slot { fill: #161616; }
+#dsh-startup-root .rx-rail-bearing { fill: #8d8d8d; }
+#dsh-startup-root .rx-rail-signal { fill: none; stroke: #f2f2f2; stroke-width: 1.5; opacity: 0; }
+#dsh-startup-root.rx-engage .rx-rail-signal {
+  animation: rx-signal-travel calc(650ms / var(--dsu-speed)) var(--rx-ease-in-out) both;
+}
+@keyframes rx-signal-travel {
+  0% { opacity: 0; transform: translateY(-88px); }
+  10%, 80% { opacity: .95; }
+  100% { opacity: 0; transform: translateY(88px); }
+}
+@media (max-width: 1099px), (max-height: 560px) {
+  #dsh-startup-root .rx-instrument,
+  #dsh-startup-root .rx-guide-rails { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #dsh-startup-root .dsu-black-inner.dsu-in::after,
+  #dsh-startup-root .dsu-reticle.dsu-in .rx-lock-corners { animation: none; }
+  #dsh-startup-root .rx-instrument { transform: none; transition: opacity 180ms ease; }
+  #dsh-startup-root .rx-relays i { transition: background-color 160ms ease; }
+  #dsh-startup-root .rx-relays i.rx-current { transform: none; }
+  #dsh-startup-root .rx-rail-carriage,
+  #dsh-startup-root .rx-button-pawl { transition: none; }
+  #dsh-startup-root .dsu-btn:is(:hover, :active) .rx-button-pawl { transform: none; }
+  #dsh-startup-root .dsu-reticle.dsu-in .rx-sector-scan { animation: none; opacity: 0; }
+  #dsh-startup-root .dsu-reticle.dsu-in .dsu-ret-rot-a,
+  #dsh-startup-root .dsu-reticle.dsu-in .dsu-ret-rot-b,
+  #dsh-startup-root .dsu-reticle.dsu-in .rx-dock-slide,
+  #dsh-startup-root.rx-engage .rx-button-frame { animation: none; }
+  #dsh-startup-root .dsu-reticle.dsu-in .dsu-ret-rot-a { transform: none; }
+  #dsh-startup-root .dsu-reticle.dsu-in .dsu-ret-rot-b { transform: rotate(-35deg); }
+  #dsh-startup-root.rx-engage .rx-rail-signal { animation: none; opacity: 0; }
+  #dsh-startup-root .rx-guide-rails { transition: opacity 180ms ease; }
+  #dsh-startup-root .dsu-scanline.dsu-go,
+  #dsh-startup-root .dsu-sweep.dsu-go,
+  #dsh-startup-root .dsu-voice.dsu-on i { animation: none; }
+  #dsh-startup-root .dsu-rule,
+  #dsh-startup-root .dsu-progress i,
+  #dsh-startup-root .dsu-slat,
+  #dsh-startup-root .dsu-foot i { transition-property: background-color, opacity; }
+}
+/* 暗底上的内圈保留原几何，只提高灰白可见度。 */
+#dsh-startup-root.dsu-dark .dsu-ring-b { stroke: #9a9a9a; }
+#dsh-startup-root.dsu-dark .dsu-dot-b { fill: #9a9a9a; }
+@media (max-height: 800px) {
+  #dsh-startup-root:has(.dsu-action.dsu-in .dsu-card:not([hidden])) .dsu-center { top: 37%; }
+  #dsh-startup-root:has(.dsu-action.dsu-in .dsu-card:not([hidden])) .dsu-action { top: 52%; }
+}
+@media (max-width: 640px) {
+  #dsh-startup-root { --rixin-reticle-size: min(90vw, 62vh); }
+  #dsh-startup-root .dsu-brand { left: 24px; top: 28px; padding-left: 66px; }
+  #dsh-startup-root .dsu-brand::before { width: 52px; height: 56px; }
+  #dsh-startup-root .dsu-brand-1 { font-size: 17px; }
+  #dsh-startup-root .dsu-brand-2 { font-size: 9px; }
+  #dsh-startup-root .dsu-brand-3 { font-size: 16px; }
+  #dsh-startup-root .dsu-skip { right: 20px; top: 32px; }
+  #dsh-startup-root .dsu-meta { left: 24px; top: 140px; }
+  #dsh-startup-root .dsu-slats { left: 24px; top: 166px; }
+  #dsh-startup-root .dsu-status.dsu-zhline { font-size: clamp(19px, 5vw, 29px); letter-spacing: .1em; text-indent: .1em; }
+  #dsh-startup-root .dsu-sub-en { font-size: 9px; letter-spacing: .16em; text-indent: .16em; }
+  #dsh-startup-root .dsu-rule.dsu-in { width: 72vw; }
+  #dsh-startup-root .dsu-btn { min-width: 280px; min-height: 60px; padding: 16px 22px; gap: 12px; }
+  #dsh-startup-root .dsu-btn-zh { font-size: 16px; }
+  #dsh-startup-root .dsu-btn-en { font-size: 10px; }
+  #dsh-startup-root .dsu-card { min-width: min(340px, 86vw); }
+  #dsh-startup-root .dsu-idline { right: 24px; bottom: 150px; font-size: 10px; letter-spacing: .12em; }
+  #dsh-startup-root .dsu-reticle { top: 42%; }
+  #dsh-startup-root .dsu-reticle::after { width: 23%; height: 24%; }
+  #dsh-startup-root:has(.dsu-reticle.dsu-in) .dsu-center { top: calc(42% + var(--rixin-reticle-size) * .5); }
+  #dsh-startup-root .dsu-w1 { font-size: 22px; }
+  #dsh-startup-root .dsu-w2 { margin-top: 18px; padding: 10px 18px; font-size: 25px; }
+  #dsh-startup-root .dsu-w3 { margin-top: 28px; gap: 24px; }
+  #dsh-startup-root .dsu-w3::before { width: 104px; height: 112px; }
+  #dsh-startup-root .dsu-w3 span { max-width: 82vw; font-size: 16px; letter-spacing: .04em; text-indent: .04em; }
+  #dsh-startup-root .dsu-w4 { margin-top: 20px; font-size: 12px; }
+  #dsh-startup-root .dsu-subtitle { left: 18px; right: 18px; bottom: 76px; gap: 8px; }
+  #dsh-startup-root .dsu-sub-zh { max-width: 100%; font-size: 12px; letter-spacing: .04em; text-align: center; }
+  #dsh-startup-root .dsu-sub-en2 { max-width: 100%; font-size: 7px; letter-spacing: .1em; text-indent: .1em; line-height: 1.6; text-align: center; }
+  #dsh-startup-root .dsu-stepcount { left: 24px; bottom: 30px; font-size: 9px; letter-spacing: .1em; }
+  #dsh-startup-root .dsu-foot { right: 24px; bottom: 30px; font-size: 9px; letter-spacing: .1em; }
+  #dsh-startup-root .dsu-voice { left: 24px; bottom: 78px; }
+  #dsh-startup-root .dsu-black-sub { margin-top: 24px; font-size: 17px; letter-spacing: .04em; text-indent: .04em; }
+}
+@media (max-width: 360px) {
+  #dsh-startup-root .dsu-brand { left: 20px; padding-left: 60px; }
+  #dsh-startup-root .dsu-brand-1 { font-size: 15px; }
+  #dsh-startup-root .dsu-skip { right: 12px; padding: 10px 9px; font-size: 10px; }
+}

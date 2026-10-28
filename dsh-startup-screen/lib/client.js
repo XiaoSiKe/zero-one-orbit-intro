@@ -254,7 +254,7 @@ window.__ModuleLoader__.load({
           —— 桌面端走浏览器半侧自举时没有 1，就靠这一条
        3) 下面这个常量：两份都没拿到时的兜底，别让面板显示 undefined
        版本号本身只在 lib/index.js 里读一次，这里不重复维护。 */
-    var FALLBACK_VERSION = '1.1.2'
+    var FALLBACK_VERSION = '1.1.2-rixin.3'
     function readInjectedVersion() {
       try {
         var v = window.__DSH_STARTUP_VERSION__
@@ -497,7 +497,7 @@ window.__ModuleLoader__.load({
           }) : null,
           h(Check, {
             label: '界面音效',
-            hint: '咔哒 / 双音确认 / 过场噪声扫频 / 结尾和声钟，全部 WebAudio 现场合成，不含音频文件。',
+            hint: '电机、伺服、气动和金属锁扣的本地机械音效，保留轻提示音；旁白播放时适当降低机器声。',
             checked: draft.sound,
             onChange: (v) => set('sound', v)
           }),

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>零一·环轨启序｜预览入口</title>
+  <style>body{background:#020202;color:#eee;font:16px/1.8 system-ui,sans-serif;max-width:48rem;margin:15vh auto;padding:24px}a{color:inherit}code{font-family:monospace}</style>
+</head>
+<body>
+  <h1>零一·环轨启序</h1>
+  <p>请在插件目录运行 <code>npm start</code>，再打开 <a href="http://127.0.0.1:4178/preview/rixin.html">当前机械环轨预览</a>。</p>
+  <p>Logo 和音频通过本地资源路由读取，请使用 HTTP 预览入口。</p>
+  <script>if (location.protocol !== 'file:') location.replace('rixin.html' + location.search);</script>
+</body>
+</html>

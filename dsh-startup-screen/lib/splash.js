@@ -21,6 +21,11 @@
   window.__DSH_STARTUP_LOADED__ = true
 
   var ROOT_ID = 'dsh-startup-root'
+  var cleanups = []
+  function listen(target, type, handler, options) {
+    target.addEventListener(type, handler, options)
+    cleanups.push(function () { target.removeEventListener(type, handler, options) })
+  }
 
   /* ── DeepSeek 官方鲸鱼标识（取自 DSH 自带 favicon.svg 的路径数据）──────── */
   var WHALE_PATH =
@@ -71,7 +76,7 @@
   var DEFAULTS = {
     enabled: true,
     mode: 'session',            // always | session | daily
-    theme: 'light',             // light | dark
+    theme: 'dark',             // light | dark
     speed: 1,
     requireInteraction: true,   // 第 1、2 步等待用户确认
     allowSkip: true,
@@ -90,18 +95,18 @@
     identity: 'JOYCE MOORE',    // ← 设置页可改的"身份名称"
     identityId: '0087',
     accessLevel: '3',
-    brand1: 'DEEPSEEK',
-    brand2: 'SYNTHESIZE INTELLIGENCE',
+    brand1: '零一 AI 日新社',
+    brand2: '01 AI CLUB',
     brand3a: 'HARNESS',
     brand3b: 'OS',
-    orgZh: '深度求索',
-    orgEn: 'DEEPSEEK',
-    orgSub: 'DEEPSEEK HARNESS',
-    welcomeBox: 'DEEPSEEK HARNESS',
-    footer: 'POWERED BY DEEPSEEK',
-    accent: '#ff7500',
-    glitchA: '#ff3b30',
-    glitchB: '#2971b8'
+    orgZh: '零一 AI 日新社',
+    orgEn: '01 AI CLUB',
+    orgSub: '从零到一，让技术进步成为每个人的机会！',
+    welcomeBox: '零一 AI 日新社',
+    footer: '零一 AI 日新社',
+    accent: '#e5e5e5',
+    glitchA: '#ffffff',
+    glitchB: '#b0b0b0'
   }
 
   /* ── 序列脚本：中文主字 + 英文等宽字幕 + 底部日志 ───────────────────────
@@ -373,6 +378,7 @@
     /* 双保险：无论从哪条路退出（揭幕 / 跳过 / 自举失败 / 9 秒兜底），
        #dsh-startup-root 一被移除就还原标题栏 */
     var observerInstalled = false
+    var rootObserver = null
     function installObserver() {
       if (observerInstalled) return
       observerInstalled = true
@@ -387,12 +393,17 @@
           }
         })
         mo.observe(document.body, { childList: true })
+        rootObserver = mo
       } catch (e) { /* 兜底不再抛 */ }
     }
     if (document.body) installObserver()
     else if (document.addEventListener) document.addEventListener('DOMContentLoaded', installObserver)
 
-    return { hide: hide, show: show, isDesktopWin: isDesktopWin }
+    return { hide: hide, show: show, isDesktopWin: isDesktopWin, dispose: function () {
+      show()
+      if (rootObserver && typeof rootObserver.disconnect === 'function') rootObserver.disconnect()
+      rootObserver = null
+    } }
   })()
 
   /* 排查 / 冒烟测试用的把手：只读开关，不改变插件行为 */
@@ -400,6 +411,8 @@
 
   /** 重播：把运行时脚本重新挂一次（配置/身份名称改动后 preview 用它）。 */
   function injectSelf() {
+    if (removalTimer) { clearTimeout(removalTimer); removalTimer = null }
+    if (root) finish(true)
     window.__DSH_STARTUP_LOADED__ = false
     var old = document.getElementById(ROOT_ID)
     if (old && old.parentNode) old.parentNode.removeChild(old)
@@ -418,6 +431,7 @@
   /* Host 侧的首屏兜底脚本已经判定"这次不播"（未启用 / 本会话已播 / 今日已播）：
      这里不再建 DOM，但仍然暴露 API，方便设置页按需重播。 */
   if (window.__DSH_STARTUP_SKIP__ === true) {
+    chromeSync.dispose()
     window.__DSH_STARTUP_API__ = {
       replay: injectSelf,
       skip: function () {},
@@ -473,7 +487,7 @@
         continue
       }
       var s = el('span', 'dsu-ch', ch)
-      s.style.transitionDelay = Math.round(n * stagger) + 'ms'
+      s.style.transitionDelay = ms(n * stagger) + 'ms'
       frag.appendChild(s)
       n++
     }
@@ -501,11 +515,29 @@
 
   var ui = {}
   var clockTimer = null
+  var removalTimer = null
+  var railDrawing = '<path class="rx-rail-spine" d="M8 12H24V228H8"/>' +
+    '<path class="rx-rail-stop" d="M5 12H27M5 228H27"/>' +
+    '<path class="rx-rail-center" d="M16 20V220"/>'
+  for (var railMark = 0; railMark < 13; railMark++) {
+    var railY = 24 + railMark * 16
+    railDrawing += '<path class="rx-rail-notch' + (railMark % 2 === 0 ? ' rx-rail-major' : '') +
+      '" d="M' + (railMark % 2 === 0 ? '2' : '6') + ' ' + railY + 'H11"/>'
+  }
+  railDrawing += '<g class="rx-rail-carriage" style="transform:translateY(-96px)">' +
+    '<path class="rx-rail-bearing" d="M6 108H26V110H6ZM6 130H26V132H6Z"/>' +
+    '<path class="rx-rail-shoe" d="M8 110H24V130H8Z"/>' +
+    '<path class="rx-rail-slot" d="M12 118H20V122H12Z"/></g>' +
+    '<g class="rx-rail-signal"><path d="M16 100V140"/></g>'
   var html =
     '<div class="dsu-plate"></div>' +
     '<div class="dsu-vignette"></div>' +
     '<div class="dsu-watermark"></div>' +
     '<div class="dsu-grain"></div>' +
+    '<div class="rx-guide-rails" aria-hidden="true">' +
+      '<svg class="rx-rail-left" viewBox="0 0 32 240" preserveAspectRatio="none">' + railDrawing + '</svg>' +
+      '<svg class="rx-rail-right" viewBox="0 0 32 240" preserveAspectRatio="none">' + railDrawing + '</svg>' +
+    '</div>' +
     '<div class="dsu-black">' +
       '<div class="dsu-black-inner"></div>' +
       '<div class="dsu-sweep"></div>' +
@@ -526,6 +558,12 @@
     '<div class="dsu-idline"></div>' +
     '<div class="dsu-reticle"></div>' +
     '<div class="dsu-hex"></div>' +
+    '<aside class="rx-instrument" aria-hidden="true">' +
+      '<div class="rx-serial"><span>RX—01 / SEQUENCE</span><b></b></div>' +
+      '<div class="rx-phase">BOOT</div>' +
+      '<div class="rx-relays"><i></i><i></i><i></i><i></i><i></i><i></i></div>' +
+      '<div class="rx-flow"><span class="rx-count">00 / 06</span><span class="rx-state">STANDBY</span></div>' +
+    '</aside>' +
     '<div class="dsu-welcome">' +
       '<div class="dsu-w1">WELCOME TO</div>' +
       '<div class="dsu-w2"></div>' +
@@ -535,6 +573,12 @@
     '<div class="dsu-action">' +
       '<div class="dsu-card" hidden></div>' +
       '<button class="dsu-btn" type="button">' +
+        '<svg class="rx-button-frame" viewBox="0 0 320 64" preserveAspectRatio="none" aria-hidden="true">' +
+          '<path class="rx-button-outline" d="M14.75 .75H319.25V49.25L305.25 63.25H.75V14.75Z"/>' +
+          '<path class="rx-button-recess" d="M19 6H314V46 M6 19V58H301"/>' +
+          '<path class="rx-button-pawl rx-pawl-left" d="M8 23H11V41H8Z"/>' +
+          '<path class="rx-button-pawl rx-pawl-right" d="M309 23H312V41H309Z"/>' +
+        '</svg>' +
         '<span class="dsu-btn-zh"></span><span class="dsu-btn-en"></span>' +
       '</button>' +
       '<div class="dsu-hint"></div>' +
@@ -612,6 +656,10 @@
   ui.meta = q('.dsu-meta')
   ui.meta1 = q('.dsu-meta-1')
   ui.meta2 = q('.dsu-meta-2')
+  ui.instrument = q('.rx-instrument')
+  ui.instrumentPhase = q('.rx-phase')
+  ui.instrumentCount = q('.rx-count')
+  ui.instrumentState = q('.rx-state')
 
   /* 内容填充 */
   ui.brand1.textContent = C.brand1
@@ -641,7 +689,7 @@
 
   ;(function welcomeLogo() {
     ui.w3.appendChild(svgWhale())
-    ui.w3.appendChild(el('span', 'dsu-w3label', 'D E E P S E E K  ·  H A R N E S S'))
+    ui.w3.appendChild(el('span', 'dsu-w3label', '从零到一，让技术进步成为每个人的机会！'))
   })()
 
   ;(function watermark() {
@@ -719,6 +767,55 @@
       c.setAttribute('cx', pts[i][0]); c.setAttribute('cy', pts[i][1]); c.setAttribute('r', '2.8')
       svg.appendChild(c)
     }
+    /* 固定分度尺与锁定角：与原旋转环共用坐标系，不改变原环几何。 */
+    var graduations = document.createElementNS(ns, 'g')
+    graduations.setAttribute('class', 'rx-calibration')
+    for (var markIndex = 0; markIndex < 60; markIndex++) {
+      var angle = (markIndex * 6 - 90) * Math.PI / 180
+      var major = markIndex % 5 === 0
+      var tick = document.createElementNS(ns, 'line')
+      var innerRadius = major ? 130 : 135
+      tick.setAttribute('x1', (200 + Math.cos(angle) * innerRadius).toFixed(2))
+      tick.setAttribute('y1', (200 + Math.sin(angle) * innerRadius).toFixed(2))
+      tick.setAttribute('x2', (200 + Math.cos(angle) * 139).toFixed(2))
+      tick.setAttribute('y2', (200 + Math.sin(angle) * 139).toFixed(2))
+      if (major) tick.setAttribute('class', 'rx-major')
+      graduations.appendChild(tick)
+    }
+    svg.insertBefore(graduations, svg.firstChild)
+    var sectorScan = document.createElementNS(ns, 'g')
+    sectorScan.setAttribute('class', 'rx-sector-scan')
+    var sectorFill = document.createElementNS(ns, 'path')
+    sectorFill.setAttribute('class', 'rx-sector-fill')
+    sectorFill.setAttribute('d', 'M200 58A142 142 0 0 1 275.25 79.58L259.35 105.03A112 112 0 0 0 200 88Z')
+    var sectorEdge = document.createElementNS(ns, 'path')
+    sectorEdge.setAttribute('class', 'rx-sector-edge')
+    sectorEdge.setAttribute('d', 'M275.25 79.58L259.35 105.03')
+    sectorScan.appendChild(sectorFill)
+    sectorScan.appendChild(sectorEdge)
+    svg.appendChild(sectorScan)
+    var dockAngles = [45, 135, 225, 315]
+    for (var dockIndex = 0; dockIndex < dockAngles.length; dockIndex++) {
+      var dockMount = document.createElementNS(ns, 'g')
+      dockMount.setAttribute('class', 'rx-dock-mount')
+      dockMount.setAttribute('transform', 'rotate(' + dockAngles[dockIndex] + ' 200 200)')
+      var dockSlide = document.createElementNS(ns, 'g')
+      dockSlide.setAttribute('class', 'rx-dock-slide')
+      var dockBody = document.createElementNS(ns, 'path')
+      dockBody.setAttribute('class', 'rx-dock-body')
+      dockBody.setAttribute('d', 'M189 51H211V60H189Z')
+      var dockSlot = document.createElementNS(ns, 'path')
+      dockSlot.setAttribute('class', 'rx-dock-slot')
+      dockSlot.setAttribute('d', 'M194 54H206V57H194Z')
+      dockSlide.appendChild(dockBody)
+      dockSlide.appendChild(dockSlot)
+      dockMount.appendChild(dockSlide)
+      svg.appendChild(dockMount)
+    }
+    var lockCorners = document.createElementNS(ns, 'path')
+    lockCorners.setAttribute('class', 'rx-lock-corners')
+    lockCorners.setAttribute('d', 'M151 158V151H158 M242 151H249V158 M249 242V249H242 M158 249H151V242')
+    svg.appendChild(lockCorners)
     ui.reticle.appendChild(svg)
   })()
 
@@ -729,11 +826,28 @@
   var finished = false
   var hexTimer = null
 
+  /* 指针按压只提供机械反馈；不阻塞原授权流程，不增加独立计时器。 */
+  ui.btn.addEventListener('pointerdown', function (event) {
+    if (finished || skipped || !ui.action.classList.contains('dsu-in')) return
+    if (event.button !== undefined && event.button !== 0) return
+    if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (root.classList.contains('rx-engage')) return
+    root.classList.add('rx-engage')
+  })
+  function releaseMechanicalPulse(event) {
+    if (event.animationName === 'rx-button-impact') root.classList.remove('rx-engage')
+  }
+  root.addEventListener('animationend', releaseMechanicalPulse)
+  root.addEventListener('animationcancel', releaseMechanicalPulse)
+
   function ms(base) { return Math.round(base / C.speed) }
 
-  function wait(base) {
+  function wait(base) { return waitMs(ms(base)) }
+
+  /* 实际毫秒：已换算的阶段余量和终幕阅读时间不再重复除以播放速度。 */
+  function waitMs(duration) {
     return new Promise(function (resolve) {
-      if (skipped) return resolve()
+      if (skipped || finished) return resolve()
       var done = false
       function fin() {
         if (done) return
@@ -742,7 +856,7 @@
         if (i >= 0) waiters.splice(i, 1)
         resolve()
       }
-      var t = setTimeout(fin, Math.max(0, ms(base)))
+      var t = setTimeout(fin, Math.max(0, duration))
       timers.push(t)
       waiters.push(fin)
     })
@@ -786,7 +900,7 @@
 
   function setProgress(p) {
     var pct = Math.max(0, Math.min(1, p))
-    ui.bar.style.width = Math.round(pct * 100) + '%'
+    ui.bar.style.transform = 'scaleX(' + pct + ')'
   }
 
   /** 六格阶段柱：走过的压暗、当前的拉满并点亮主题橙 */
@@ -796,6 +910,7 @@
       var idx = i + 1
       items[i].classList.toggle('dsu-on', idx === active)
       items[i].classList.toggle('dsu-past', idx < active)
+      items[i].style.transform = 'translateX(' + (active > 0 && idx > active ? 14 : 0) + 'px) scaleX(' + (idx === active ? 1.7 : 1) + ')'
     }
   }
 
@@ -828,6 +943,19 @@
     var totalSteps = STEPS.length + 1
     ui.stepcount.textContent = '[ ' + String(i).padStart(2, '0') + ' / ' +
       String(totalSteps).padStart(2, '0') + ' ] ' + code
+    ui.instrumentPhase.textContent = code
+    ui.instrumentCount.textContent = String(i).padStart(2, '0') + ' / ' + String(totalSteps).padStart(2, '0')
+    ui.instrumentState.textContent = i === 0 ? 'STANDBY' : i >= 5 ? 'LOCKED' : 'ACTIVE'
+    ui.instrument.classList.toggle('rx-confirmed', i >= 5)
+    var relays = ui.instrument.querySelectorAll('.rx-relays i')
+    for (var relayIndex = 0; relayIndex < relays.length; relayIndex++) {
+      relays[relayIndex].classList.toggle('rx-passed', relayIndex + 1 < i)
+      relays[relayIndex].classList.toggle('rx-current', relayIndex + 1 === i)
+    }
+    var carriages = root.querySelectorAll('.rx-rail-carriage')
+    for (var carriageIndex = 0; carriageIndex < carriages.length; carriageIndex++) {
+      carriages[carriageIndex].style.transform = 'translateY(' + (-96 + Math.min(totalSteps, Math.max(0, i)) * 32) + 'px)'
+    }
   }
 
   function startHex() {
@@ -843,7 +971,7 @@
     function paint() {
       var out = []
       for (var i = 0; i < lines; i++) out.push(line())
-      ui.hex.innerHTML = out.join('<br>')
+      ui.hex.textContent = out.join('\n')
     }
     paint()
     ui.hex.classList.add('dsu-in')
@@ -867,140 +995,180 @@
   }
 
   var audio = (function () {
-    var ctx = null
+    var ctx = null, output = null, limiter = null, noiseBuffer = null
+    var buffers = {}, pending = {}, live = [], waitingVoices = [], disposed = false, voiceCount = 0, unlocked = false, resumePending = null
     function ac(force) {
-      /* 语音素材要独立于「界面音效」开关：force=true 时无视 C.sound */
-      if (!C.sound && !force) return null
+      if (disposed || (!C.sound && !force)) return null
       try {
         var AC = window.AudioContext || window.webkitAudioContext
         if (!AC) return null
         if (!ctx) ctx = new AC()
-        if (ctx.state === 'suspended' && typeof ctx.resume === 'function') ctx.resume()
+        if (ctx.state === 'suspended' && unlocked && !resumePending && typeof ctx.resume === 'function') {
+          var resumed = ctx.resume()
+          if (resumed && typeof resumed.then === 'function') {
+            resumePending = resumed
+            resumed.then(function () { resumePending = null; flushVoices() }, function () { resumePending = null })
+          }
+        }
         return ctx
       } catch (e) { return null }
     }
-    function vol(gain) { return Math.max(0.0002, (gain == null ? 0.05 : gain) * clamp01(C.soundVolume, 0, 1) * 2) }
+    function vol(gain) { return Math.max(0.0001, (gain == null ? 0.05 : gain) * clamp01(C.soundVolume, 0, 1) * 2) }
+    function fxOutput(c) {
+      if (output) return output
+      output = c.createGain()
+      output.gain.value = voiceCount ? 0.5 : 0.8
+      if (typeof c.createDynamicsCompressor === 'function') {
+        limiter = c.createDynamicsCompressor()
+        limiter.threshold.value = -16; limiter.knee.value = 12; limiter.ratio.value = 4
+        limiter.attack.value = 0.004; limiter.release.value = 0.16
+        output.connect(limiter); limiter.connect(c.destination)
+      } else output.connect(c.destination)
+      return output
+    }
+    function duck() {
+      if (!output || !ctx) return
+      var target = voiceCount ? 0.5 : 0.8
+      if (typeof output.gain.setTargetAtTime === 'function') output.gain.setTargetAtTime(target, ctx.currentTime, 0.02)
+      else output.gain.setValueAtTime(target, ctx.currentTime)
+    }
+    function track(source, nodes, onDone) {
+      var record = { source: source, nodes: nodes, onDone: onDone, done: false }
+      live.push(record)
+      source.onended = function () { release(record, false) }
+      return record
+    }
+    function release(record, stopped) {
+      if (record.done) return
+      record.done = true; record.source.onended = null
+      var i = live.indexOf(record); if (i >= 0) live.splice(i, 1)
+      if (stopped && typeof record.source.stop === 'function') { try { record.source.stop() } catch (e) {} }
+      record.nodes.forEach(function (node) { if (typeof node.disconnect === 'function') { try { node.disconnect() } catch (e) {} } })
+      if (record.onDone) record.onDone(stopped)
+    }
     function tone(freq, dur, type, gain, delay, glideTo) {
-      var c = ac(); if (!c) return
+      var c = ac(); if (!c || c.state !== 'running') return
       try {
-        var t0 = c.currentTime + (delay || 0)
-        var o = c.createOscillator(), g = c.createGain()
-        o.type = type || 'sine'
-        o.frequency.setValueAtTime(freq, t0)
+        var t0 = c.currentTime + (delay || 0), o = c.createOscillator(), g = c.createGain()
+        o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0)
         if (glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, t0 + dur)
         g.gain.setValueAtTime(0.0001, t0)
-        g.gain.exponentialRampToValueAtTime(vol(gain), t0 + Math.min(0.02, dur * 0.3))
+        g.gain.exponentialRampToValueAtTime(vol(gain), t0 + Math.min(0.012, dur * 0.25))
         g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
-        o.connect(g); g.connect(c.destination)
-        o.start(t0); o.stop(t0 + dur + 0.03)
-      } catch (e) { /* 静默降级 */ }
+        o.connect(g); g.connect(fxOutput(c)); track(o, [o, g])
+        o.start(t0); o.stop(t0 + dur + 0.02)
+      } catch (e) { /* unsupported audio stays silent */ }
     }
-    function noise(dur, gain) {
-      var c = ac(); if (!c) return
+    function noise(dur, gain, delay, frequency, endFrequency) {
+      var c = ac(); if (!c || c.state !== 'running') return
       try {
-        var n = Math.floor(c.sampleRate * dur)
-        var buf = c.createBuffer(1, n, c.sampleRate)
-        var d = buf.getChannelData(0)
-        for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n)
-        var src = c.createBufferSource(); src.buffer = buf
-        var f = c.createBiquadFilter(); f.type = 'bandpass'
-        f.frequency.value = 1500; f.Q.value = 0.6
-        var g = c.createGain(); g.gain.value = vol(gain)
-        src.connect(f); f.connect(g); g.connect(c.destination)
-        src.start()
-      } catch (e) { /* 静默降级 */ }
+        if (!noiseBuffer) {
+          noiseBuffer = c.createBuffer(1, c.sampleRate, c.sampleRate)
+          var data = noiseBuffer.getChannelData(0)
+          for (var i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
+        }
+        var t0 = c.currentTime + (delay || 0), src = c.createBufferSource()
+        src.buffer = noiseBuffer; src.loop = true
+        var filter = c.createBiquadFilter(), g = c.createGain()
+        filter.type = 'bandpass'; filter.Q.value = 0.7
+        filter.frequency.setValueAtTime(frequency || 900, t0)
+        if (endFrequency) filter.frequency.exponentialRampToValueAtTime(endFrequency, t0 + dur)
+        g.gain.setValueAtTime(0.0001, t0)
+        g.gain.exponentialRampToValueAtTime(vol(gain), t0 + Math.min(0.008, dur * 0.25))
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
+        src.connect(filter); filter.connect(g); g.connect(fxOutput(c)); track(src, [src, filter, g])
+        src.start(t0); if (typeof src.stop === 'function') src.stop(t0 + dur + 0.02)
+      } catch (e) { /* unsupported audio stays silent */ }
     }
-    /* 从 /dsh-startup/asset/ 拉真素材（用户音频里抠出来的"哒"）并解码缓存；
-       拿不到就自动回落到下面合成的音，功能不依赖网络/素材存在与否。 */
-    var buffers = {}
-    var fetching = {}
-    function loadAsset(name) {
-      if (C.sfx === 'synth') return
-      if (buffers[name] || fetching[name]) return
-      fetching[name] = true
-      try {
-        fetch('/dsh-startup/asset/' + name + '.mp3')
-          .then(function (r) { return r.ok ? r.arrayBuffer() : null })
-          .then(function (ab) { return ab ? ac().decodeAudioData(ab) : null })
-          .then(function (buf) { if (buf) buffers[name] = buf })
-          .catch(function () { /* 没素材就走合成音 */ })
-      } catch (e) { /* fetch 不存在也一样降级 */ }
-    }
-    /* 素材预加载：fetch + decodeAudioData 不需要用户手势，所以加载时就拉，
-       这样第一步就能用真声，而不用等用户第一次点击。 */
-    var pending = {}
     function ensureAsset(name) {
+      if (disposed || (name.indexOf('line-') === 0 && C.voiceSource === 'tts')) return Promise.resolve(false)
       if (buffers[name]) return Promise.resolve(true)
       if (pending[name]) return pending[name]
-      if (C.voiceSource === 'tts') return Promise.resolve(false)
-      pending[name] = new Promise(function (resolve) {
-        try {
-          fetch('/dsh-startup/asset/' + name + '.mp3')
-            .then(function (r) { return r.ok ? r.arrayBuffer() : null })
-            .then(function (ab) { if (!ab) return null; return ac(true).decodeAudioData(ab) })
-            .then(function (buf) {
-              if (buf) { buffers[name] = buf; resolve(true) } else { resolve(false) }
-            })
-            .catch(function () { resolve(false) })
-        } catch (e) { resolve(false) }
-      })
+      pending[name] = Promise.resolve().then(function () {
+        return fetch('/dsh-startup/asset/' + name + '.mp3')
+      }).then(function (r) { return r.ok ? r.arrayBuffer() : null })
+        .then(function (ab) { var c = ac(true); return ab && c ? c.decodeAudioData(ab) : null })
+        .then(function (buf) { if (buf && !disposed) { buffers[name] = buf; return true } return false })
+        .catch(function () { return false })
       return pending[name]
     }
-
-    /** 播素材并等它播完，resolve 实际时长(ms)。拿不到素材 resolve 0。 */
-    function playAssetAndWait(name, gain) {
+    function loadAsset(name) { if (C.sound && C.sfx !== 'synth') ensureAsset(name) }
+    function flushVoices() {
+      if (!ctx || ctx.state !== 'running' || disposed) return
+      waitingVoices.splice(0).forEach(function (job) { job.start() })
+    }
+    function playAssetAndWait(name, gain, onStart) {
       return new Promise(function (resolve) {
-        var c = ac(true)
-        var buf = buffers[name]
+        var c = ac(true), buf = buffers[name]
         if (!c || !buf) { resolve(0); return }
-        try {
-          var src = c.createBufferSource()
-          src.buffer = buf
-          var g = c.createGain()
-          g.gain.value = Math.min(1, (gain == null ? 0.85 : gain) * clamp01(C.voiceVolume, 0, 1) * 1.6)
-          src.connect(g); g.connect(c.destination)
-          src.onended = function () { resolve(Math.round(buf.duration * 1000)) }
-          src.start()
-        } catch (e) { resolve(0) }
+        function startVoice() {
+          if (disposed) { resolve(0); return }
+          try {
+            var src = c.createBufferSource(), g = c.createGain()
+            src.buffer = buf; g.gain.value = Math.min(1, (gain == null ? 0.85 : gain) * clamp01(C.voiceVolume, 0, 1) * 1.6)
+            src.connect(g); g.connect(c.destination)
+            voiceCount++; duck()
+            track(src, [src, g], function (stopped) { voiceCount = Math.max(0, voiceCount - 1); duck(); resolve(stopped ? 0 : Math.round(buf.duration * 1000)) })
+            src.start()
+            if (onStart) onStart()
+          } catch (e) { resolve(0) }
+        }
+        if (c.state === 'running') startVoice()
+        else waitingVoices.push({ start: startVoice, resolve: resolve })
       })
     }
 
     function playAsset(name, gain) {
-      var c = ac(); if (!c) return false
+      var c = ac(); if (!c || c.state !== 'running' || C.sfx === 'synth') return false
       var buf = buffers[name]
       if (!buf) { loadAsset(name); return false }
       try {
-        var src = c.createBufferSource()
-        src.buffer = buf
-        var g = c.createGain()
-        g.gain.value = Math.min(1, (gain == null ? 0.55 : gain) * clamp01(C.soundVolume, 0, 1) * 2)
-        src.connect(g); g.connect(c.destination)
-        src.start()
-        return true
+        var src = c.createBufferSource(), g = c.createGain(); src.buffer = buf
+        g.gain.value = vol(gain)
+        src.connect(g); g.connect(fxOutput(c)); track(src, [src, g]); src.start(); return true
       } catch (e) { return false }
     }
-
+    function latch(weight, delay) {
+      delay = delay || 0
+      tone(86, 0.18, 'sine', 0.10 * weight, delay, 48)
+      tone(480, 0.09, 'triangle', 0.026 * weight, delay + 0.008, 310)
+      tone(1137, 0.055, 'sine', 0.011 * weight, delay + 0.014)
+      noise(0.065, 0.045 * weight, delay, 1200, 650)
+    }
+    function relay(delay, weight) {
+      noise(0.022, 0.025 * weight, delay, 1800, 1200)
+      tone(185, 0.045, 'triangle', 0.026 * weight, delay, 120)
+    }
+    function motor(dur, gain, delay, from, to) {
+      tone(from, dur, 'triangle', gain, delay, to)
+      tone(from * 3.01, dur * 0.92, 'sine', gain * 0.22, (delay || 0) + 0.012, to * 3.01)
+      noise(dur, gain * 0.35, delay, 350, 800)
+    }
+    function dispose() {
+      if (disposed) return
+      disposed = true
+      waitingVoices.splice(0).forEach(function (job) { job.resolve(0) })
+      live.slice().forEach(function (record) { release(record, true) })
+      if (output && typeof output.disconnect === 'function') output.disconnect()
+      if (limiter && typeof limiter.disconnect === 'function') limiter.disconnect()
+      if (ctx && typeof ctx.close === 'function') { try { var closed = ctx.close(); if (closed && closed.catch) closed.catch(function () {}) } catch (e) {} }
+      ctx = null; output = null; limiter = null; noiseBuffer = null; buffers = {}; pending = {}
+    }
     return {
-      resume: function () { ac(); loadAsset('sfx-tick'); loadAsset('sfx-ticks-run') },
+      resume: function () { unlocked = true; ac(C.voice); flushVoices(); loadAsset('sfx-tick'); loadAsset('sfx-ticks-run') },
       preload: function () { loadAsset('sfx-tick'); loadAsset('sfx-ticks-run') },
       ensureAsset: ensureAsset,
       playAssetAndWait: playAssetAndWait,
-      /* 文字渐显 / 阶段推进 / 按钮确认 —— 优先用真素材 */
-      tick: function () { if (!playAsset('sfx-tick', 0.45)) tone(1760, 0.035, 'square', 0.022) },
-      confirm: function () { if (!playAsset('sfx-tick', 0.85)) { tone(660, 0.09, 'triangle', 0.07); tone(990, 0.17, 'triangle', 0.055, 0.085) } },
-      tickRun: function () { playAsset('sfx-ticks-run', 0.5) },
-      step: function () { if (!playAsset('sfx-tick', 0.6)) { tone(880, 0.05, 'sine', 0.05); tone(1320, 0.07, 'sine', 0.028, 0.045) } },
-      hover: function () { tone(2200, 0.02, 'sine', 0.018) },
-      confirm: function () { tone(660, 0.09, 'triangle', 0.07); tone(990, 0.17, 'triangle', 0.055, 0.085) },
-      sweep: function () { noise(0.75, 0.035) },
-      /* 念台词之前的两声轻提示：这一笔让 TTS 从"浏览器念字"变成"系统播报" */
-      cue: function () { tone(1046.5, 0.05, 'sine', 0.028); tone(1568, 0.06, 'sine', 0.02, 0.075) },
-      rise: function () { tone(220, 1.1, 'sine', 0.032, 0, 990) },
-      chime: function () {
-        tone(659.25, 0.9, 'sine', 0.055)
-        tone(830.61, 0.9, 'sine', 0.04, 0.09)
-        tone(987.77, 1.3, 'sine', 0.045, 0.18)
-      }
+      dispose: dispose,
+      tick: function () { playAsset('sfx-tick', 0.12); relay(0, 0.6) },
+      confirm: function () { playAsset('sfx-tick', 0.18); latch(1, 0); relay(0.07, 0.8) },
+      tickRun: function () { playAsset('sfx-ticks-run', 0.22); motor(0.75, 0.035, 0, 72, 94); relay(0.05, 0.5); relay(0.12, 0.45); relay(0.19, 0.4) },
+      step: function () { playAsset('sfx-tick', 0.12); latch(0.5, 0) },
+      hover: function () { relay(0, 0.25) },
+      sweep: function () { motor(0.5, 0.045, 0, 62, 100); noise(0.5, 0.04, 0, 420, 1100); relay(0.42, 0.5) },
+      cue: function () { tone(1046.5, 0.05, 'sine', 0.018); tone(1568, 0.06, 'sine', 0.012, 0.075) },
+      rise: function () { motor(1.05, 0.065, 0, 48, 100); relay(0, 0.6); relay(0.055, 0.5) },
+      chime: function () { latch(0.75, 0); tone(220, 0.45, 'sine', 0.035, 0.09); tone(330, 0.55, 'sine', 0.024, 0.16); relay(0.12, 0.4) }
     }
   })()
 
@@ -1147,8 +1315,8 @@
           return audio.ensureAsset(asset).then(function (ok) {
             if (!ok || finished) return 0
             if (C.voiceCue !== false) audio.cue()
-            return audio.playAssetAndWait(asset, 0.85).then(function (ms) {
-              if (ms > 0) setMeter(true)
+            return audio.playAssetAndWait(asset, 0.85, function () { setMeter(true) }).then(function (ms) {
+              setMeter(false)
               return ms
             })
           }).then(function (ms) {
@@ -1244,14 +1412,14 @@
   /* 语音/音效接线：声卡要等用户手势才能出声，这里挂一次性解锁 */
   voice.attach(q('.dsu-voice'))
   ;(function preloadVoices() {
-    if (C.voiceSource === 'tts') return
+    if (!C.voice || C.voiceSource === 'tts') return
     for (var i = 0; i < STEPS.length; i++) if (STEPS[i].audio) audio.ensureAsset(STEPS[i].audio)
     audio.ensureAsset('line-6')   /* 终幕欢迎语 */
   })()
   ;(function wireSound() {
     voice.load()
     if (voice.supported && typeof window.speechSynthesis.addEventListener === 'function') {
-      try { window.speechSynthesis.addEventListener('voiceschanged', function () { voice.load() }) } catch (e) {}
+      try { listen(window.speechSynthesis, 'voiceschanged', function () { voice.load() }) } catch (e) {}
     }
     var unlocked = false
     function unlock() {
@@ -1262,9 +1430,9 @@
       document.removeEventListener('keydown', unlock, true)
       document.removeEventListener('touchstart', unlock, true)
     }
-    document.addEventListener('pointerdown', unlock, true)
-    document.addEventListener('keydown', unlock, true)
-    document.addEventListener('touchstart', unlock, true)
+    listen(document, 'pointerdown', unlock, true)
+    listen(document, 'keydown', unlock, true)
+    listen(document, 'touchstart', unlock, true)
   })()
 
   /* ── 时间线 ───────────────────────────────────────────────────────────── */
@@ -1381,17 +1549,18 @@
            台词短也不会干等。用户点得快时同样等这一句念完，不掐断。 */
         function holdFor(spoken) {
           var target = Math.max(ms(step.hold), (spoken || 0) + ms(240))
-          return wait(Math.max(0, target - (spoken || 0)))
+          return waitMs(Math.max(0, target - (spoken || 0)))
         }
 
         if (step.action === 'grant' || step.action === 'confirm') {
           showAction(step)
-          return wait(520).then(function () { return waitAction() }).then(function () {
+          var action = waitAction()
+          return wait(520).then(function () { return action }).then(function () {
             hideAction()
             audio.confirm()
             ui.caret.classList.remove('dsu-on')
             return spoke
-          }).then(function () { return wait(ms(320)) })
+          }).then(function () { return wait(320) })
         }
         if (step.hex) {
           return spoke.then(holdFor).then(function () { stopHex() })
@@ -1496,44 +1665,31 @@
         ui.w2.classList.add('dsu-glitch-box')   /* 黑底白字那块换加色混合 */
         void ui.welcome.offsetWidth
         targets.forEach(function (t) { t.classList.add('dsu-on') })
-        return wait(640)
+        /* 两轮故障切片共 860ms，完整收束后再开始计算阅读时间。 */
+        return wait(900)
       })
-      /* 光晕从中心炸开 + 变形光条横扫 + 文字青色 halation */
-      .then(function () {
-        root.classList.add('dsu-peak')
-        ui.bloom.classList.add('dsu-go')
-        ui.streak.classList.add('dsu-go')
-        return wait(430)
-      })
-      /* 光晕最亮那一下补一记极短高光（是"眨一下"，不是长时间糊白） */
-      .then(function () {
-        ui.flash.style.transition = 'opacity ' + ms(70) + 'ms linear'
-        ui.flash.style.opacity = '0.72'
-        return wait(90)
-      })
-      .then(function () {
-        ui.flash.style.transition = 'opacity ' + ms(340) + 'ms cubic-bezier(0.4, 0, 0.2, 1)'
-        ui.flash.style.opacity = '0'
-        return wait(320)
-      })
+      /* 固定 3.2 秒清晰阅读，不受快放设置压缩；随后仍等待欢迎语播完。 */
+      .then(function () { return waitMs(3200) })
       /* 欢迎语没播完就不揭幕（素材缺失时这个 Promise 立刻 resolve，不影响节奏） */
       .then(function () { return welcome })
-      /* 揭幕：整个机位后撤 + 轻微失焦，比单纯淡出更有镜头感 */
+      /* 收束：欢迎语播完后平面淡出，不做光晕扩散与整屏缩放。 */
       .then(function () {
         root.classList.add('dsu-handoff')
-        return wait(780)
+        return wait(320)
       })
       .then(function () { return finish() })
   }
 
-  function finish() {
+  function finish(quiet) {
     if (finished) return
     finished = true
     /* 揭幕即还原桌面端标题栏（root 被移除时 MutationObserver 还会再兜一次） */
-    chromeSync.show()
+    chromeSync.dispose()
     releaseAll()
     stopHex()
     voice.stop()
+    audio.dispose()
+    cleanups.splice(0).forEach(function (dispose) { try { dispose() } catch (e) {} })
     if (clockTimer) { clearInterval(clockTimer); clockTimer = null }
     try {
       if (C.mode === 'session') window.sessionStorage.setItem('dsh-startup-screen:shown', '1')
@@ -1548,7 +1704,9 @@
     if (document.body) document.body.style.overflow = ''
     root.classList.remove('dsu-boot')
     root.classList.add('dsu-gone')
-    setTimeout(function () {
+    if (quiet === true) { if (root.parentNode) root.parentNode.removeChild(root); return }
+    removalTimer = setTimeout(function () {
+      removalTimer = null
       if (root && root.parentNode) root.parentNode.removeChild(root)
       try { window.dispatchEvent(new CustomEvent('dsh-startup:done')) } catch (err) { /* noop */ }
     }, ms(900))
@@ -1564,7 +1722,7 @@
   if (C.allowSkip && ui.skip) {
     ui.skip.hidden = false
     ui.skip.addEventListener('click', function (e) { e.stopPropagation(); requestSkip() })
-    document.addEventListener('keydown', function (e) {
+    listen(document, 'keydown', function (e) {
       if (e.key === 'Escape') requestSkip()
     })
   } else if (ui.skip) {
