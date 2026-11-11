@@ -17,7 +17,7 @@
 (function () {
   'use strict'
 
-  if (window.__DSH_STARTUP_LOADED__) return
+  if (window.__DSH_STARTUP_LOADED__ || window.__DSH_STARTUP_FAILED__) return
   window.__DSH_STARTUP_LOADED__ = true
 
   var ROOT_ID = 'dsh-startup-root'
@@ -417,6 +417,7 @@
     var old = document.getElementById(ROOT_ID)
     if (old && old.parentNode) old.parentNode.removeChild(old)
     window.__DSH_STARTUP_SKIP__ = false
+    window.__DSH_STARTUP_FAILED__ = false
     var s = document.createElement('script')
     /* 正式运行时由 Host 路由提供（加时间戳绕开缓存）；
        离线预览页会把相对路径写进 __DSH_STARTUP_SCRIPT_URL__，file:// 下不加查询串。 */
@@ -441,16 +442,17 @@
     return
   }
 
-  /* 最后一道保险：无论前面哪一步抛异常，都不许把用户留在黑幕里 */
+  /* 等待时间线开始。根节点属于本轮，旧定时器不会移除后来重播的覆盖层。 */
   setTimeout(function () {
     try {
-      var r = document.getElementById(ROOT_ID)
-      if (r && r.classList && r.classList.contains('dsu-boot')) {
-        if (r.parentNode) r.parentNode.removeChild(r)
-        document.documentElement.classList.remove('dsu-lock')
-        if (document.body) document.body.style.overflow = ''
-        window.__DSH_STARTUP_FAILED__ = true
-      }
+      if (!root || finished || root.classList.contains('dsu-running')) return
+      if (clockTimer) clearInterval(clockTimer)
+      if (!root.parentNode) return
+      root.parentNode.removeChild(root)
+      document.documentElement.classList.remove('dsu-lock')
+      document.documentElement.style.overflow = ''
+      if (document.body) document.body.style.overflow = ''
+      window.__DSH_STARTUP_FAILED__ = true
     } catch (e) { /* 兜底本身不许再抛 */ }
   }, 9000)
 
@@ -1437,6 +1439,8 @@
 
   /* ── 时间线 ───────────────────────────────────────────────────────────── */
   function run() {
+    if (finished || !root.parentNode) return Promise.resolve()
+    root.classList.add('dsu-running')
     /* 第一幕就是纯黑：先把桌面端标题栏整层透明化，按钮与色块一并消失 */
     chromeSync.hide()
     return Promise.resolve()

@@ -1,6 +1,6 @@
 # 零一·环轨启序 · 插件包
 
-[dsh-startup-screen-rixin-1.1.2.tgz](dsh-startup-screen-rixin-1.1.2.tgz) 由本项目源码生成，包内版本为 `1.1.2-rixin.3`。文件名保留稳定构建路径。
+[dsh-startup-screen-rixin-1.1.2.tgz](dsh-startup-screen-rixin-1.1.2.tgz) 由本项目源码生成，包内版本为 `1.1.2-rixin.4`。文件名保留稳定构建路径。
 
 在项目根目录运行 `npm run build:plugin` 可同步品牌样式并更新该包。该命令只生成文件，不会安装、启用或重启 DSH。
 

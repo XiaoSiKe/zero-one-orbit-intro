@@ -32,11 +32,11 @@
 
 ## 新版 DSH Desktop 接入原理
 
-本机桌面端为 0.2.1-rc.3。系统内置 CLI 在 `/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh`，可以直接执行 `plugin --profile desktop add <本地 tgz>`，无需全局安装第二套 DSH。
+此前记录的本机桌面版本为 0.2.1-rc.3。该版本内置的 CLI 位于 `/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh`，可以直接执行 `plugin --profile desktop add <本地 tgz>`，无需全局安装第二套 DSH。
 
 安装会把依赖登记到 `~/.dsh/profiles/desktop/package.json`，并将插件 bundle 加入 `dsh.profile.bundles`。插件随 Host 进程启动，提供 CSS、JS、音频和配置路由。
 
-当前新版桌面壳直接加载打包 HTML，再通过 boot IPC 接收 `webServer.collectIndexInjections()` 收集的启动注入表。插件监听官方 `webserver/index-inject` 事件，顺序提供内联样式、启动配置、首屏根节点、启动判定脚本和动画运行时。旧载体仍走 `tapIndex()`；同一载体只选择一条路径。
+当前新版桌面壳直接加载打包 HTML，再通过 boot IPC 接收 `webServer.collectIndexInjections(peer)` 为对应页面收集的启动注入表。插件监听官方 `webserver/index-inject` 事件，顺序提供内联样式、启动配置、首屏根节点、启动判定脚本和动画运行时。旧载体仍走 `tapIndex()`；同一载体只选择一条路径。
 
 动画是覆盖在主界面上的 DOM/SVG 层，由 CSS 与 JavaScript 推进。DSH 主界面可以在背后同时加载。完成、跳过或异常兜底时，动画移除覆盖层、释放滚动和交互，并发出完成事件。授权和身份确认按钮仅用于推进动画，不改变 DSH 的真实工具权限。
 
@@ -66,3 +66,14 @@
 正式名称为「零一·环轨启序」，用于零一 AI 日新社社员的 DSH 开场。公开仓库保留上游 Git 历史，仓库范围扩到项目根目录；`materials/archive/` 为本地历史资料，不随 GitHub 源码和 Release 分发。
 
 插件版本为 `1.1.2-rixin.3`，沿用稳定构建路径 `dist/dsh-startup-screen-rixin-1.1.2.tgz`。修复素材 URL 解码与路径边界、CSS 十六进制颜色长度校验、身份卡展开引起的整屏滚动偏移，以及按钮初现时的快速确认丢失。回归覆盖 100ms 内点击／Enter、重复点击和独立 HTTP 预览服务。浏览器复测确认身份卡展开后动效层 `scrollTop` 保持为 0。当前发布范围为独立预览和插件构建；新版 DSH Desktop 实机验收仍待完成，桌面接入继续暂停。
+
+
+## DSH 0.2.2-rc.1 接入更新（2026-11-11）
+
+源码和构建包更新为 `1.1.2-rixin.4`，接入目标为官方 npm `latest` 指向的 [DSH 0.2.2-rc.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.1)。
+
+- 按新版 [启动注入约定](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/packages/host/webserver/src/injections.ts) 添加运行时预加载。桌面壳继续通过 Host HTTP 转发读取脚本、Logo 和音频。
+- 启动时只在覆盖层持有滚动锁期间使用黑底。9 秒兜底以时间线是否实际开始为依据，并且只处理该轮的根节点。
+- 设置页保存或恢复默认后，重播直接读取 Host 返回的配置，避免沿用桌面启动时的配置快照。
+
+官方 DSH 0.2.2-rc.1 要求 Node.js 24.9+。本仓库的独立预览和打包仍支持 Node.js 20+。本轮按要求跳过本地预览与测试，桌面实机验收待完成。
