@@ -254,7 +254,7 @@ window.__ModuleLoader__.load({
           —— 桌面端走浏览器半侧自举时没有 1，就靠这一条
        3) 下面这个常量：两份都没拿到时的兜底，别让面板显示 undefined
        版本号本身只在 lib/index.js 里读一次，这里不重复维护。 */
-    var FALLBACK_VERSION = '1.1.2-rixin.3'
+    var FALLBACK_VERSION = '1.1.2-rixin.4'
     function readInjectedVersion() {
       try {
         var v = window.__DSH_STARTUP_VERSION__
@@ -304,6 +304,7 @@ window.__ModuleLoader__.load({
           .then((j) => {
             if (!j || j.ok !== true) throw new Error((j && j.error) || 'save failed')
             setDraft(j.config)
+            window.__DSH_STARTUP__ = j.config
             setNotice('已保存。下次打开 DSH 生效；点「立即预览」可以先看效果。')
           })
           .catch((e) => setError('保存失败：' + String(e && e.message ? e.message : e)))
@@ -321,6 +322,7 @@ window.__ModuleLoader__.load({
           .then((j) => {
             if (!j || j.ok !== true) throw new Error((j && j.error) || 'reset failed')
             setDraft(j.config)
+            window.__DSH_STARTUP__ = j.config
             setNotice('已恢复默认。')
           })
           .catch((e) => setError('恢复默认失败：' + String(e && e.message ? e.message : e)))
@@ -581,11 +583,8 @@ window.__ModuleLoader__.load({
     }
 
     /* ── 桌面端自举 ──────────────────────────────────────────────────────── */
-    /* Host 半侧靠 ctx.webServer.tapIndex 往 index.html 里注入启动界面。
-       web profile 一定走这条路；但 Electron 也可能改用 file:// + IPC 直接下发
-       前端（dsh-host-webserver 的注释就写着 "Electron uses file:// plus IPC
-       instead"），那时 index 注入整条不生效。所以浏览器半侧自己兜一层：
-       没被 Host 接管时，由本侧建根节点 + 拉 splash.css/splash.js 自举。
+    /* Web 和新版桌面壳优先使用 Host 提供的启动注入表。
+       若宿主没有注入，客户端负责创建根节点并加载 CSS 与运行时。
 
        判定全在 window 上，不去猜宿主类型：
          __DSH_STARTUP_BOOT__  Host 已经注入过（index）/ 本侧已经自举过（client）
@@ -665,8 +664,9 @@ window.__ModuleLoader__.load({
       var cssReady = false
       var scriptReady = false
       function guard(err) {
+        if (failed || !root.parentNode) return
         if (err) {
-          if (!failed && typeof console !== 'undefined' && console.warn) {
+          if (typeof console !== 'undefined' && console.warn) {
             console.warn('[dsh-startup-screen] 启动界面自举失败，已放开页面：', err.message)
           }
           failed = true
@@ -693,12 +693,9 @@ window.__ModuleLoader__.load({
         guard(null)
       })
 
-      /* 自愈：样式与脚本都拿到了、这个标记还在，就说明动画没接管，放行 */
+      /* 即使启动类已移除，也要等时间线真正接管。 */
       setTimeout(function () {
-        try {
-          var r = document.getElementById('dsh-startup-root')
-          if (r && r.className && r.className.indexOf('dsu-boot') !== -1) release(false)
-        } catch (e) { /* 兜底不再抛 */ }
+        if (root.parentNode && !root.classList.contains('dsu-running')) release(false)
       }, 9000)
     }
 

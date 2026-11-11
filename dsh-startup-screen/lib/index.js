@@ -172,6 +172,8 @@ function safeJson(value) {
 /** 首屏兜底：在应用挂载前先把窗口盖住，避免闪出界面本体。 */
 const CRITICAL_CSS = [
   'html.dsu-lock,html.dsu-lock body{overflow:hidden!important}',
+  // Match the opening frame while the Host's boot theme is still resolving.
+  'html.dsu-lock body{background-color:#000!important;--dsh-boot-bg:#000!important}',
   '#dsh-startup-root.dsu-boot{position:fixed;inset:0;z-index:2147483000;background:#000}'
 ].join('')
 
@@ -179,10 +181,22 @@ const BOOTSTRAP_JS = `(function(){try{
 var c=window.__DSH_STARTUP__||{};
 var root=document.getElementById('dsh-startup-root');
 var off=!c.enabled;
+try{
 if(!off&&c.mode==='session'&&sessionStorage.getItem('dsh-startup-screen:shown')==='1')off=true;
 if(!off&&c.mode==='daily'&&localStorage.getItem('dsh-startup-screen:day')===new Date().toISOString().slice(0,10))off=true;
+}catch(e){}
 if(off){window.__DSH_STARTUP_SKIP__=true;if(root&&root.parentNode)root.parentNode.removeChild(root);}
-else{document.documentElement.classList.add('dsu-lock');/* 兜底：连 splash.js 都没跑起来（404/被拦/语法错）时，9 秒后无条件放行，绝不锁黑屏 */setTimeout(function(){try{var r=document.getElementById('dsh-startup-root');if(r&&r.className&&r.className.indexOf('dsu-boot')!==-1){if(r.parentNode)r.parentNode.removeChild(r);document.documentElement.classList.remove('dsu-lock');if(document.body)document.body.style.overflow='';window.__DSH_STARTUP_FAILED__=true;}}catch(e){}},9000);}
+else if(root){
+  document.documentElement.classList.add('dsu-lock');
+  setTimeout(function(){
+    if(!root.parentNode||root.classList.contains('dsu-running'))return;
+    root.parentNode.removeChild(root);
+    document.documentElement.classList.remove('dsu-lock');
+    document.documentElement.style.overflow='';
+    if(document.body)document.body.style.overflow='';
+    window.__DSH_STARTUP_FAILED__=true;
+  },9000);
+}
 }catch(e){} })()`
 
 const name = NS
@@ -368,13 +382,14 @@ function apply(ctx) {
     }
   }))
 
-  /* 新桌面载体通过 boot IPC 消费结构化注入表，不调用旧的 HTML tap。
-     只选择一条注入路径，避免同页创建两个首屏覆盖层。 */
+  /* DSH 0.2.2 为每个 Peer 收集注入表，桌面壳通过 boot IPC 取得该表。
+     这里按表格贡献通用开场，同一载体只选择一条注入路径。 */
   if (typeof webServer.collectIndexInjections === 'function' && typeof ctx.on === 'function') {
     const off = ctx.on('webserver/index-inject', (table) => {
       if (!Array.isArray(table)) return
       if (table.some((row) => row.kind === 'script-src' && row.src === ROUTE_BASE + '/splash.js')) return
       table.push(
+        { kind: 'script-preload', src: ROUTE_BASE + '/splash.js' },
         { kind: 'style', text: CRITICAL_CSS + '\n' + readSplashCss() },
         { kind: 'global', name: '__DSH_STARTUP_BOOT__', value: 'index' },
         { kind: 'global', name: '__DSH_STARTUP_VERSION__', value: PLUGIN_VERSION },

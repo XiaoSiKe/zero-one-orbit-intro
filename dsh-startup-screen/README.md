@@ -22,7 +22,7 @@ npm start
 npm test
 ```
 
-完整源码仓库在项目根目录执行 `npm run sync:styles` 同步品牌样式，执行 `npm run build:plugin` 生成 `dist/dsh-startup-screen-rixin-1.1.2.tgz`。插件包内部版本为 `1.1.2-rixin.3`。
+完整源码仓库在项目根目录执行 `npm run sync:styles` 同步品牌样式，执行 `npm run build:plugin` 生成 `dist/dsh-startup-screen-rixin-1.1.2.tgz`。插件包内部版本为 `1.1.2-rixin.4`，源码接入目标为 DSH `0.2.2-rc.1`。
 
 本版发布范围为独立预览与插件构建。新版 DSH Desktop 适配经过模拟宿主回归，实机验收尚未完成，桌面接入仍暂停。具体机制、适配状态与维护入口见 [RIXIN.md](RIXIN.md)。
 

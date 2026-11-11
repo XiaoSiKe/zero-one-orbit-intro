@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.1.2--rixin.3-242424?style=flat-square" alt="版本 1.1.2-rixin.3">
+  <img src="https://img.shields.io/badge/Version-1.1.2--rixin.3-242424?style=flat-square" alt="已发布版本 1.1.2-rixin.3">
   <img src="https://img.shields.io/badge/Node.js-20%2B-242424?style=flat-square&amp;logo=nodedotjs&amp;logoColor=white" alt="Node.js 20+">
   <img src="https://img.shields.io/badge/DSH-%E7%A4%BE%E5%91%98%E9%A2%84%E8%A7%88%E7%89%88-242424?style=flat-square" alt="DSH 社员预览版">
 </p>
@@ -85,6 +85,8 @@ npm start
 
 ## 📦 下载与版本
 
+仓库源码与 `dist/` 内的构建包为 `1.1.2-rixin.4`，接入目标是 DSH `0.2.2-rc.1`。
+
 前往 **[GitHub Releases →](https://github.com/XiaoSiKe/zero-one-orbit-intro/releases)** 下载社员预览版。
 
 | 📁 下载文件 | 📝 用途 |
@@ -95,7 +97,7 @@ npm start
 
 > **🧪 当前适配状态**
 >
-> 已验证独立浏览器预览、自动化回归和插件打包。新版 DSH Desktop 实机验收尚未完成，桌面接入仍暂停。安装说明与适配状态见 [工程文档](dsh-startup-screen/RIXIN.md)。
+> 已发布的 `1.1.2-rixin.3` 完成了独立浏览器预览和自动化回归。面向 DSH `0.2.2-rc.1` 的源码迭代已打包，桌面实机验收待完成。安装说明与适配状态见 [工程文档](dsh-startup-screen/RIXIN.md)。
 
 ## 🛠️ 维护入口
 
